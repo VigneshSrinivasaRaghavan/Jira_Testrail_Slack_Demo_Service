@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  jira-mock:
+    build: ./mock-services/jira-mock
+    ports:
+      - "4001:4001"
+    volumes:
+      - ./mock-services/jira-mock:/app
+      - jira_db:/app/jira.db
+
+volumes:
+  jira_db:

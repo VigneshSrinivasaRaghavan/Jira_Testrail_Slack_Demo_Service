@@ -1,0 +1,18 @@
+[
+  {
+    "key": "QA-1",
+    "fields": {
+      "summary": "Sample issue one",
+      "description": "This is a seeded issue",
+      "issuetype": {"name": "Bug"}
+    }
+  },
+  {
+    "key": "QA-2",
+    "fields": {
+      "summary": "Sample issue two",
+      "description": "Second seeded issue",
+      "issuetype": {"name": "Task"}
+    }
+  }
+]
