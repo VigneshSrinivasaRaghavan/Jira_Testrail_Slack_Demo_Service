@@ -1,0 +1,877 @@
+{
+	"info": {
+		"_postman_id": "b1c2d3e4-f5g6-7890-bcde-fg1234567890",
+		"name": "Jira Mock API",
+		"description": "Complete API collection for Jira Mock Service\n\nBase URL: http://localhost:4001\n\nThis collection includes all endpoints for:\n- Issue Management (Create, Read, Update, Delete)\n- Issue Search and Listing\n- Admin Operations\n- Web UI Integration\n- Health Monitoring\n\n### Authentication\nAll API endpoints require `Authorization: Bearer <token>` header.\nAny token value is accepted for testing purposes.\n\n### Issue Types\n- Bug\n- Task\n- Story\n- Epic\n- Subtask\n\n### Priority Levels\n- Low\n- Medium\n- High\n- Critical\n\n### Project\n- Key: QA\n- Name: QA Project\n\n### Status Values\n- To Do\n- In Progress\n- Done",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12345679"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check if the Jira Mock service is running"
+					},
+					"response": [
+						{
+							"name": "Health Check Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/health",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"health"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"healthy\",\n    \"service\": \"jira-mock\",\n    \"version\": \"1.0.0\",\n    \"database\": \"connected\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Issue Management",
+			"item": [
+				{
+					"name": "Create Issue - Bug",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fields\": {\n        \"project\": {\n            \"key\": \"QA\"\n        },\n        \"summary\": \"Login page not loading\",\n        \"description\": \"When clicking the login button, the page shows a 404 error instead of processing the login request. This affects all users trying to access the system.\",\n        \"issuetype\": {\n            \"name\": \"Bug\"\n        },\n        \"priority\": {\n            \"name\": \"High\"\n        },\n        \"assignee\": \"john.doe\",\n        \"reporter\": \"jane.smith\",\n        \"labels\": [\"ui\", \"critical\", \"login\"],\n        \"components\": [\"frontend\", \"authentication\"]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/issue",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"issue"
+							]
+						},
+						"description": "Create a new Bug issue with all optional fields"
+					},
+					"response": [
+						{
+							"name": "Create Bug Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fields\": {\n        \"project\": {\n            \"key\": \"QA\"\n        },\n        \"summary\": \"Login page not loading\",\n        \"description\": \"When clicking the login button, the page shows a 404 error\",\n        \"issuetype\": {\n            \"name\": \"Bug\"\n        },\n        \"priority\": {\n            \"name\": \"High\"\n        }\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/issue",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"issue"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": {\n        \"id\": \"4\"\n    },\n    \"key\": \"QA-4\",\n    \"self\": \"/rest/api/3/issue/QA-4\",\n    \"fields\": {\n        \"project\": {\n            \"key\": \"QA\",\n            \"name\": \"QA Project\"\n        },\n        \"summary\": \"Login page not loading\",\n        \"description\": \"When clicking the login button, the page shows a 404 error\",\n        \"issuetype\": {\n            \"name\": \"Bug\"\n        },\n        \"priority\": {\n            \"name\": \"High\"\n        },\n        \"status\": {\n            \"name\": \"To Do\",\n            \"statusCategory\": {\n                \"name\": \"To Do\"\n            }\n        },\n        \"assignee\": {\n            \"displayName\": \"john.doe\"\n        },\n        \"reporter\": {\n            \"accountId\": \"jane.smith\",\n            \"displayName\": \"jane.smith\"\n        },\n        \"created\": \"2025-09-06 22:15:30\",\n        \"updated\": \"2025-09-06 22:15:30\",\n        \"labels\": [\"ui\", \"critical\", \"login\"],\n        \"components\": [{\"name\": \"frontend\"}, {\"name\": \"authentication\"}],\n        \"comments\": [],\n        \"attachment\": [],\n        \"resolution\": null\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Create Issue - Task",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fields\": {\n        \"project\": {\n            \"key\": \"QA\"\n        },\n        \"summary\": \"Update user documentation\",\n        \"description\": \"Update the user documentation to reflect the new login process and security features.\",\n        \"issuetype\": {\n            \"name\": \"Task\"\n        },\n        \"priority\": {\n            \"name\": \"Medium\"\n        },\n        \"assignee\": \"doc.writer\",\n        \"labels\": [\"documentation\", \"user-guide\"],\n        \"components\": [\"documentation\"]\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/issue",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"issue"
+							]
+						},
+						"description": "Create a new Task issue"
+					}
+				},
+				{
+					"name": "Create Issue - Minimal",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fields\": {\n        \"summary\": \"Simple test issue\",\n        \"issuetype\": {\n            \"name\": \"Bug\"\n        }\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/issue",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"issue"
+							]
+						},
+						"description": "Create an issue with only required fields (summary and issuetype)"
+					}
+				},
+				{
+					"name": "Get Issue by Key",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"issue",
+								"{{issue_key}}"
+							]
+						},
+						"description": "Retrieve a specific issue by its key (e.g., QA-1, QA-2)"
+					},
+					"response": [
+						{
+							"name": "Get Issue Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/issue/QA-1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"issue",
+										"QA-1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"key\": \"QA-1\",\n    \"self\": \"/rest/api/3/issue/QA-1\",\n    \"fields\": {\n        \"project\": {\n            \"key\": \"QA\",\n            \"name\": \"QA Project\"\n        },\n        \"summary\": \"Sample Bug Issue\",\n        \"description\": \"This is a sample bug for testing purposes\",\n        \"issuetype\": {\n            \"name\": \"Bug\"\n        },\n        \"priority\": {\n            \"name\": \"High\"\n        },\n        \"status\": {\n            \"name\": \"To Do\",\n            \"statusCategory\": {\n                \"name\": \"To Do\"\n            }\n        },\n        \"assignee\": {\n            \"displayName\": \"john.doe\"\n        },\n        \"reporter\": {\n            \"accountId\": \"mock-reporter\",\n            \"displayName\": \"Mock Reporter\"\n        },\n        \"created\": \"2025-09-06 16:51:17\",\n        \"updated\": \"2025-09-06 16:55:20\",\n        \"labels\": [\"sample\", \"testing\"],\n        \"components\": [{\"name\": \"backend\"}],\n        \"comments\": [],\n        \"attachment\": [],\n        \"resolution\": null\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "Delete Issue",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"issue",
+								"{{issue_key}}"
+							]
+						},
+						"description": "Permanently delete an issue by its key"
+					},
+					"response": [
+						{
+							"name": "Delete Issue Success",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/issue/QA-5",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"issue",
+										"QA-5"
+									]
+								}
+							},
+							"status": "No Content",
+							"code": 204,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Issue QA-5 deleted successfully\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Issue Search & Listing",
+			"item": [
+				{
+					"name": "Search All Issues",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/search",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"search"
+							]
+						},
+						"description": "Get all issues without any filters"
+					},
+					"response": [
+						{
+							"name": "Search All Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/search",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"search"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"expand\": \"names,schema\",\n    \"startAt\": 0,\n    \"maxResults\": 50,\n    \"total\": 3,\n    \"issues\": [\n        {\n            \"id\": 1,\n            \"key\": \"QA-1\",\n            \"fields\": {\n                \"summary\": \"Sample Bug Issue\",\n                \"status\": {\"name\": \"To Do\"},\n                \"priority\": {\"name\": \"High\"},\n                \"issuetype\": {\"name\": \"Bug\"}\n            }\n        },\n        {\n            \"id\": 2,\n            \"key\": \"QA-2\",\n            \"fields\": {\n                \"summary\": \"Sample Task Issue\",\n                \"status\": {\"name\": \"In Progress\"},\n                \"priority\": {\"name\": \"Medium\"},\n                \"issuetype\": {\"name\": \"Task\"}\n            }\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Search with Pagination",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/search?startAt=0&maxResults=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"search"
+							],
+							"query": [
+								{
+									"key": "startAt",
+									"value": "0",
+									"description": "Starting index for pagination"
+								},
+								{
+									"key": "maxResults",
+									"value": "10",
+									"description": "Maximum number of results to return"
+								}
+							]
+						},
+						"description": "Search issues with pagination parameters"
+					}
+				},
+				{
+					"name": "Search with JQL",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/search?jql=project = QA AND issuetype = Bug",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"search"
+							],
+							"query": [
+								{
+									"key": "jql",
+									"value": "project = QA AND issuetype = Bug",
+									"description": "JQL query to filter issues"
+								}
+							]
+						},
+						"description": "Search issues using JQL (Jira Query Language) - Note: Mock service accepts JQL but doesn't actually filter"
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin Operations",
+			"item": [
+				{
+					"name": "Reset Database",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"confirm\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/admin/reset",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"admin",
+								"reset"
+							]
+						},
+						"description": "⚠️ **ADMIN OPERATION** ⚠️\n\nResets the database to initial state with sample data. This will:\n- Delete all existing issues\n- Recreate the database schema\n- Insert sample seed data\n\n**Use with caution!**"
+					},
+					"response": [
+						{
+							"name": "Reset Success",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"confirm\": true\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/admin/reset",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"admin",
+										"reset"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Database reset successfully\",\n    \"issues_created\": 3,\n    \"timestamp\": \"2025-09-06T22:20:15.123456\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Test Scenarios",
+			"item": [
+				{
+					"name": "Complete Issue Workflow",
+					"item": [
+						{
+							"name": "1. Create Bug Issue",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"fields\": {\n        \"project\": {\n            \"key\": \"QA\"\n        },\n        \"summary\": \"Workflow Test - Critical Bug\",\n        \"description\": \"This is a test issue created for workflow validation. It represents a critical bug that needs immediate attention.\",\n        \"issuetype\": {\n            \"name\": \"Bug\"\n        },\n        \"priority\": {\n            \"name\": \"Critical\"\n        },\n        \"assignee\": \"workflow.tester\",\n        \"labels\": [\"workflow\", \"test\", \"critical\"],\n        \"components\": [\"testing\", \"automation\"]\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/issue",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"issue"
+									]
+								},
+								"description": "Step 1: Create a critical bug issue for workflow testing"
+							}
+						},
+						{
+							"name": "2. Fetch Created Issue",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/issue/{{created_issue_key}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"issue",
+										"{{created_issue_key}}"
+									]
+								},
+								"description": "Step 2: Retrieve the created issue to verify all data"
+							}
+						},
+						{
+							"name": "3. Search for Issues",
+							"request": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/search?maxResults=5",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"search"
+									],
+									"query": [
+										{
+											"key": "maxResults",
+											"value": "5"
+										}
+									]
+								},
+								"description": "Step 3: Search for issues to see the created issue in the list"
+							}
+						},
+						{
+							"name": "4. Delete Test Issue",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{auth_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/issue/{{created_issue_key}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"issue",
+										"{{created_issue_key}}"
+									]
+								},
+								"description": "Step 4: Clean up by deleting the test issue"
+							}
+						}
+					],
+					"description": "A complete workflow demonstrating: Create Issue → Fetch Issue → Search Issues → Delete Issue"
+				}
+			]
+		},
+		{
+			"name": "Error Scenarios",
+			"item": [
+				{
+					"name": "Missing Authorization",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/search",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"search"
+							]
+						},
+						"description": "Test error handling when Authorization header is missing"
+					},
+					"response": [
+						{
+							"name": "401 Unauthorized",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/search",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"search"
+									]
+								}
+							},
+							"status": "Unauthorized",
+							"code": 401,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"detail\": \"Missing Authorization header. Please provide Bearer token.\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Invalid Issue Key",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/issue/INVALID-999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"issue",
+								"INVALID-999"
+							]
+						},
+						"description": "Test error handling when requesting a non-existent issue"
+					},
+					"response": [
+						{
+							"name": "404 Not Found",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/rest/api/3/issue/INVALID-999",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"rest",
+										"api",
+										"3",
+										"issue",
+										"INVALID-999"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"detail\": \"Issue INVALID-999 not found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Invalid Issue Creation",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fields\": {\n        \"description\": \"Missing required summary field\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rest/api/3/issue",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rest",
+								"api",
+								"3",
+								"issue"
+							]
+						},
+						"description": "Test error handling when creating an issue without required fields"
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:4001",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "test-token-123",
+			"type": "string"
+		},
+		{
+			"key": "issue_key",
+			"value": "QA-1",
+			"type": "string"
+		},
+		{
+			"key": "created_issue_key",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
