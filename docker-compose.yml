@@ -1,58 +1,159 @@
+# =============================================================================
+# Mock Services - Docker Compose Configuration
+# =============================================================================
+#
+# This Docker Compose file orchestrates all three mock services:
+# - Jira Mock (Port 4001) - Issue tracking and project management
+# - TestRail Mock (Port 4002) - Test case management and execution
+# - Slack Mock (Port 4003) - Team communication and messaging
+#
+# Usage:
+#   docker compose up -d --build     # Start all services
+#   docker compose logs -f           # View logs
+#   docker compose ps               # Check status
+#   docker compose down             # Stop all services
+#   docker compose down -v          # Stop and remove volumes
+#
+# Access URLs:
+#   - Jira Mock:     http://localhost:4001/ui
+#   - TestRail Mock: http://localhost:4002/ui
+#   - Slack Mock:    http://localhost:4003/ui
+#   - API Docs:      http://localhost:400[1-3]/docs
+#   - Health Check:  http://localhost:400[1-3]/health
+#
+# =============================================================================
+
 version: '3.8'
+
 services:
+  # =============================================================================
+  # Jira Mock Service - Issue Tracking & Project Management
+  # =============================================================================
   jira-mock:
-    build: ./mock-services/jira-mock
+    build: 
+      context: ./mock-services/jira-mock
+      dockerfile: Dockerfile
+    container_name: jira-mock-service
     ports:
       - "4001:4001"
     volumes:
       - ./mock-services/jira-mock:/app
-      - jira_db:/app/jira.db
+      - jira_db:/app/data
+    environment:
+      - PORT=4001
+      - HOST=0.0.0.0
+      - MOCK_AUTH_REQUIRED=true
+      - ENABLE_RATE_LIMIT=false
+      - JIRA_PROJECT_KEY=QA
+      - DATABASE_URL=sqlite:///./data/jira.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - mock-services-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jira-mock.rule=Host(`jira-mock.localhost`)"
+      - "traefik.http.services.jira-mock.loadbalancer.server.port=4001"
 
+  # =============================================================================
+  # TestRail Mock Service - Test Case Management & Execution
+  # =============================================================================
   testrail-mock:
-    build: ./mock-services/testrail-mock
+    build: 
+      context: ./mock-services/testrail-mock
+      dockerfile: Dockerfile
+    container_name: testrail-mock-service
     ports:
       - "4002:4002"
     volumes:
       - ./mock-services/testrail-mock:/app
       - testrail_db:/app/data
     environment:
+      - PORT=4002
+      - HOST=0.0.0.0
       - MOCK_AUTH_REQUIRED=true
       - ENABLE_RATE_LIMIT=false
       - TESTRAIL_PROJECT_ID=1
+      - DATABASE_URL=sqlite:///./data/testrail.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4002/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - mock-services-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.testrail-mock.rule=Host(`testrail-mock.localhost`)"
+      - "traefik.http.services.testrail-mock.loadbalancer.server.port=4002"
     depends_on:
-      - jira-mock
+      jira-mock:
+        condition: service_healthy
 
+  # =============================================================================
+  # Slack Mock Service - Team Communication & Messaging
+  # =============================================================================
   slack-mock:
-    build: ./mock-services/slack-mock
+    build: 
+      context: ./mock-services/slack-mock
+      dockerfile: Dockerfile
+    container_name: slack-mock-service
     ports:
       - "4003:4003"
     volumes:
       - ./mock-services/slack-mock:/app
       - slack_db:/app/data
     environment:
+      - PORT=4003
+      - HOST=0.0.0.0
       - MOCK_AUTH_REQUIRED=true
       - ENABLE_RATE_LIMIT=false
       - DEFAULT_SLACK_CHANNEL=qa-reports
+      - DATABASE_URL=sqlite:///./data/slack_mock.db
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4003/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - mock-services-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.slack-mock.rule=Host(`slack-mock.localhost`)"
+      - "traefik.http.services.slack-mock.loadbalancer.server.port=4003"
     depends_on:
-      - jira-mock
-      - testrail-mock
+      jira-mock:
+        condition: service_healthy
+      testrail-mock:
+        condition: service_healthy
 
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  mock-services-network:
+    driver: bridge
+    name: mock-services-network
+
+# =============================================================================
+# Volumes - Persistent Data Storage
+# =============================================================================
 volumes:
   jira_db:
+    driver: local
+    name: mock-services-jira-db
   testrail_db:
+    driver: local
+    name: mock-services-testrail-db
   slack_db:
+    driver: local
+    name: mock-services-slack-db

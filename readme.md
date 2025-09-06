@@ -24,13 +24,16 @@ Each service includes:
 
 | Method | Platform | Command | Use Case |
 |--------|----------|---------|----------|
-| **🐳 Docker Compose** | All OS | `docker compose up -d --build` | **Recommended** - One command for all services |
-| **🔧 Shell Scripts** | Mac/Linux | `./start.sh` | Local development, easy debugging |
-| **🪟 Batch Files** | Windows | `start.bat` | Windows local development |
-| **🐍 Python Direct** | All OS | `python app.py` or `python start_simple.py` | Direct Python execution |
-| **⚡ Manual Setup** | All OS | `uvicorn app:app --host 0.0.0.0 --port 400X` | Full control over startup |
+| **🐳 Docker Compose** | All OS | `docker compose up -d --build` | **Recommended** - Production-ready |
+| **🚀 All Services Script** | Mac/Linux | `./start-all.sh` | **Easy** - One command for all services |
+| **🪟 All Services Batch** | Windows | `start-all.bat` | **Easy** - Windows one-command startup |
+| **🔧 Individual Scripts** | Mac/Linux | `cd service && ./start.sh` | Local development, service-by-service |
+| **🪟 Individual Batch** | Windows | `cd service && start.bat` | Windows service-by-service |
+| **🐍 Python Direct** | All OS | `python app.py` | Direct execution, custom environments |
 
-### 🎯 Method 1: Docker Compose (Easiest - All Services at Once)
+📚 **Detailed Guide**: See [STARTUP_GUIDE.md](STARTUP_GUIDE.md) for comprehensive instructions
+
+### 🎯 Method 1: Docker Compose (Production-Ready)
 
 **Start all three services with one command:**
 
@@ -49,9 +52,39 @@ docker compose logs -f
 docker compose down
 ```
 
-**✅ Result**: All services running on ports 4001, 4002, 4003
+**✅ Result**: All services running on ports 4001, 4002, 4003 with health checks and auto-restart
 
-### 🔧 Method 2: Individual Shell Scripts (Mac/Linux)
+### 🚀 Method 2: All Services Scripts (Easiest for Development)
+
+**Mac/Linux - One command for all services:**
+
+```bash
+# Start all services locally
+./start-all.sh
+
+# Stop all services
+./stop-all.sh
+
+# Use Docker instead
+./start-all.sh --docker
+```
+
+**Windows - One command for all services:**
+
+```cmd
+# Start all services locally
+start-all.bat
+
+# Stop all services  
+stop-all.bat
+
+# Use Docker instead
+start-all.bat docker
+```
+
+**✅ Result**: All services with dependency checking, health monitoring, and log management
+
+### 🔧 Method 3: Individual Shell Scripts (Mac/Linux)
 
 **Start each service in separate terminals:**
 
@@ -69,7 +102,7 @@ cd mock-services/slack-mock
 ./start.sh                    # Starts on port 4003
 ```
 
-### 🪟 Method 3: Windows Batch Files
+### 🪟 Method 4: Windows Batch Files
 
 **Start each service in separate command prompts:**
 
@@ -87,7 +120,7 @@ cd mock-services\slack-mock
 start.bat
 ```
 
-### 🐍 Method 4: Direct Python Execution
+### 🐍 Method 5: Direct Python Execution
 
 **Run Python files directly (after installing dependencies):**
 
@@ -108,7 +141,7 @@ pip install -r requirements.txt
 python app_simple.py          # or python start_simple.py
 ```
 
-### ⚡ Method 5: Manual Uvicorn (Advanced)
+### ⚡ Method 6: Manual Uvicorn (Advanced)
 
 **Full manual control:**
 
@@ -128,8 +161,9 @@ uvicorn mock-services.slack-mock.app_simple:app --host 0.0.0.0 --port 4003 &
 
 | If you want... | Use this method |
 |----------------|-----------------|
-| **Easiest setup** | 🐳 Docker Compose |
-| **Local development** | 🔧 Shell scripts (Mac/Linux) or 🪟 Batch files (Windows) |
+| **Easiest setup (beginners)** | 🚀 All Services Scripts (`./start-all.sh` or `start-all.bat`) |
+| **Production-like environment** | 🐳 Docker Compose |
+| **Individual service control** | 🔧 Individual scripts |
 | **Custom Python environment** | 🐍 Direct Python execution |
 | **Full control** | ⚡ Manual Uvicorn |
 
@@ -425,19 +459,19 @@ This project is designed for educational and development purposes. Each mock ser
 ### 🚀 Fastest Way to Start (Copy & Paste)
 
 ```bash
-# Option 1: All services with Docker (Recommended)
+# Option 1: All services with one script (Mac/Linux) - EASIEST!
+./start-all.sh
+
+# Option 2: All services with Docker (Production-ready)
 docker compose up -d --build
 
-# Option 2: Individual services (Mac/Linux)
+# Option 3: All services (Windows) - EASIEST!
+start-all.bat
+
+# Option 4: Individual services (Mac/Linux)
 cd mock-services/jira-mock && ./start.sh &
 cd ../testrail-mock && ./start.sh &  
 cd ../slack-mock && ./start.sh &
-
-# Option 3: Individual services (Windows)
-# Run each in separate command prompts:
-# cd mock-services\jira-mock && start.bat
-# cd mock-services\testrail-mock && start.bat
-# cd mock-services\slack-mock && start.bat
 ```
 
 ### 🌐 Service Access URLs
@@ -451,17 +485,21 @@ cd ../slack-mock && ./start.sh &
 ### 🔧 Quick Commands
 
 ```bash
+# Stop all services
+./stop-all.sh                # Mac/Linux
+stop-all.bat                 # Windows
+docker compose down          # Docker
+
 # Check all services are running
 curl http://localhost:4001/health && curl http://localhost:4002/health && curl http://localhost:4003/health
 
-# Stop Docker services
-docker compose down
-
 # View logs
-docker compose logs -f
+tail -f logs/*.log           # Local services
+docker compose logs -f      # Docker services
 
 # Reset everything
-docker compose down -v && docker compose up -d --build
+./stop-all.sh && ./start-all.sh                    # Local
+docker compose down -v && docker compose up -d --build  # Docker
 ```
 
 ---
