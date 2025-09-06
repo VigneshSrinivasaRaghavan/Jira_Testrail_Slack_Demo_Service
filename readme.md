@@ -1,183 +1,363 @@
-### Mock Services - Jira / TestRail / Slack
+# Mock Services - Jira, TestRail & Slack
 
-Lightweight local mocks for Jira, TestRail and Slack used for teaching/demoing agentic integrations.
+A comprehensive suite of lightweight local mock services for **Jira**, **TestRail**, and **Slack** APIs, designed for teaching and demonstrating agentic AI integrations without requiring real API credentials.
 
-- Repo root: run compose / podman from here.
-- All services live under `mock-services/`:
-  - `mock-services/jira-mock/`
-  - `mock-services/testrail-mock/` (TODO)
-  - `mock-services/slack-mock/` (TODO)
+## 🎯 Overview
 
-## Requirements
+This repository provides three fully functional mock services that simulate popular development and collaboration tools:
 
-- Python 3.11+ (for local run)
-- `podman` / `podman compose` (recommended if you don't have Docker Desktop)
-- `sqlite3` (optional, for local DB inspection)
+- **🎫 Jira Mock** (Port 4001) - Issue tracking and project management
+- **🧪 TestRail Mock** (Port 4002) - Test case management and execution tracking  
+- **💬 Slack Mock** (Port 4003) - Team communication and messaging
 
-## 🚀 Quick Start (One-Click Launch)
+Each service includes:
+- ✅ **REST API** endpoints matching real service APIs
+- 🌐 **Web UI** for interactive testing and demonstration
+- 📊 **API Documentation** via Swagger/OpenAPI
+- 🐳 **Docker support** for easy deployment
+- 📋 **Postman collections** for API testing
+- 🧪 **Test suites** for validation
 
-### 🍎 Mac/Linux Users
+## 🚀 Quick Start - All Services
 
-**Option 1: Local Development (Recommended)**
+### Option 1: Docker Compose (Recommended)
+
+Start all three services with a single command:
+
 ```bash
-cd mock-services/jira-mock
-./start.sh
-```
+# Clone the repository
+git clone <repository-url>
+cd Jira_Testrail_Slack_Demo_Service
 
-**Option 2: Container (Docker/Podman)**
-```bash
-cd mock-services/jira-mock
-./start-jira.sh
-```
+# Start all services
+docker compose up -d --build
 
-**Stop Service:**
-```bash
-cd mock-services/jira-mock
-./stop-jira.sh
-```
+# View logs
+docker compose logs -f
 
-### 🪟 Windows Users
-
-**Option 1: Local Development (Recommended)**
-```cmd
-cd mock-services\jira-mock
-start.bat
-```
-
-**Option 2: Container (Docker Desktop)**
-```cmd
-cd mock-services\jira-mock
-start-jira.bat
-```
-
-**Option 3: PowerShell (Alternative)**
-```powershell
-cd mock-services\jira-mock
-.\start-jira.ps1
-```
-
-**Stop Service:**
-```cmd
-cd mock-services\jira-mock
-stop-jira.bat
-```
-
-## 📋 Manual Setup (If Scripts Don't Work)
-
-### Mac/Linux - Local Development
-```bash
-cd mock-services/jira-mock
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-python -m uvicorn app:app --host 0.0.0.0 --port 4001 --reload
-```
-
-### Windows - Local Development
-```cmd
-cd mock-services\jira-mock
-python -m venv .venv
-.venv\Scripts\activate.bat
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-python -m uvicorn app:app --host 0.0.0.0 --port 4001 --reload
-```
-
-### Container (Any OS with Docker/Podman)
-```bash
-# From repo root
-docker compose up -d --build jira-mock
-docker compose logs -f jira-mock
+# Stop all services
 docker compose down
 ```
 
-## Environment
+**Service URLs:**
+- 🎫 **Jira Mock**: http://localhost:4001/ui
+- 🧪 **TestRail Mock**: http://localhost:4002/ui  
+- 💬 **Slack Mock**: http://localhost:4003/ui
 
-Place optional env at `mock-services/.env` (or repo root) — example values:
+### Option 2: Individual Service Startup
 
+Start services individually for development:
+
+```bash
+# Terminal 1 - Jira Mock
+cd mock-services/jira-mock
+./start.sh
+
+# Terminal 2 - TestRail Mock  
+cd mock-services/testrail-mock
+./start.sh
+
+# Terminal 3 - Slack Mock
+cd mock-services/slack-mock
+./start.sh
 ```
+
+### Option 3: Windows Users
+
+```cmd
+# Start each service in separate command prompts
+cd mock-services\jira-mock
+start.bat
+
+cd mock-services\testrail-mock  
+start.bat
+
+cd mock-services\slack-mock
+start.bat
+```
+
+## 📋 Service Details
+
+### 🎫 Jira Mock Service (Port 4001)
+
+**Purpose**: Simulates Atlassian Jira Cloud REST API v3 for issue management.
+
+**Key Features**:
+- Create, read, update, delete issues
+- File attachments support
+- JQL search functionality
+- Issue types: Bug, Task, Story, Epic
+- Priority and status management
+
+**Quick Test**:
+```bash
+# Health check
+curl http://localhost:4001/health
+
+# Get sample issue
+curl -H "Authorization: Bearer token" http://localhost:4001/rest/api/3/issue/QA-1
+```
+
+**Documentation**: [Jira Mock README](mock-services/jira-mock/README.md)
+
+### 🧪 TestRail Mock Service (Port 4002)
+
+**Purpose**: Simulates TestRail's REST API for test case management and execution tracking.
+
+**Key Features**:
+- Test case creation and management
+- Test execution and result tracking
+- Test runs and test plans
+- Test sections organization
+- Status tracking (Passed, Failed, Blocked, etc.)
+
+**Quick Test**:
+```bash
+# Health check
+curl http://localhost:4002/health
+
+# Get sample test case
+curl -H "Authorization: Bearer token" http://localhost:4002/index.php?/api/v2/get_case/1
+```
+
+**Documentation**: [TestRail Mock README](mock-services/testrail-mock/README.md)
+
+### 💬 Slack Mock Service (Port 4003)
+
+**Purpose**: Simulates Slack's Web API for team communication and messaging.
+
+**Key Features**:
+- Post messages to channels
+- Retrieve conversation history
+- File upload simulation
+- Channel management
+- Threading support
+- Two demo channels: #qa-reports and #general
+
+**Quick Test**:
+```bash
+# Health check
+curl http://localhost:4003/health
+
+# Get channel history
+curl -H "Authorization: Bearer token" "http://localhost:4003/api/conversations.history?channel=qa-reports"
+```
+
+**Documentation**: [Slack Mock README](mock-services/slack-mock/README.md)
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in the project root or `mock-services/` directory:
+
+```env
+# Authentication
 MOCK_AUTH_REQUIRED=true
-ENABLE_RATE_LIMIT=false
+
+# Service-specific settings
 JIRA_PROJECT_KEY=QA
 TESTRAIL_PROJECT_ID=1
 DEFAULT_SLACK_CHANNEL=qa-reports
+
+# Optional features
+ENABLE_RATE_LIMIT=false
 ```
 
-## Jira mock (running on port 4001)
+### Port Configuration
 
-- UI: `GET /ui` — simple index + quick-create form
-- Issue detail UI: `GET /ui/issue/{key}`
-- Health: `GET /health`
+| Service | Default Port | Environment Variable |
+|---------|--------------|---------------------|
+| Jira Mock | 4001 | `JIRA_PORT` |
+| TestRail Mock | 4002 | `TESTRAIL_PORT` |
+| Slack Mock | 4003 | `SLACK_PORT` |
 
-REST API (requires presence of `Authorization: Bearer <token>` header; any token accepted):
+## 🧪 Testing All Services
 
-- `POST /rest/api/3/issue` — create issue (Jira-style JSON payload under `fields`). Returns 201 with `key`.
-- `GET  /rest/api/3/issue/{issue_key}` — get issue
-- `GET  /rest/api/3/search?startAt=0&maxResults=50` — list issues
-- `POST /ui/create` — quick-create from UI (form)
-
-Admin / maintenance endpoints (auth required):
-
-- `DELETE /rest/api/3/issue/{issue_key}` — delete single issue (204)
-- `POST /admin/reset` — remove DB and reseed from `mock-services/shared/seed/sample_issues.json` (returns `{ "status": "reset" }`)
-
-DB and seed
-
-- DB file (local): `mock-services/jira-mock/jira.db`
-- Seed JSON: `mock-services/shared/seed/sample_issues.json` — automatically loaded on first startup or after `POST /admin/reset`.
-
-Reset options
-
-- Full reset (fast): stop server, delete DB, restart (reseeds automatically)
-  ```bash
-  pkill -f uvicorn || true
-  rm -f mock-services/jira-mock/jira.db
-  # restart server
-  source mock-services/jira-mock/.venv/bin/activate
-  python -m uvicorn app:app --host 0.0.0.0 --port 4001 --reload
-  ```
-
-- From container (Podman) remove volume and restart
-  ```bash
-  podman compose down
-  podman volume rm jira_db
-  podman compose up -d --build jira-mock
-  ```
-
-- HTTP reset (requires Authorization header):
-  ```bash
-  curl -X POST -H 'Authorization: Bearer x' http://localhost:4001/admin/reset
-  ```
-
-Quick curl examples
+### Health Check Script
 
 ```bash
-# Health
-curl -s http://localhost:4001/health
+#!/bin/bash
+echo "🔍 Checking all mock services..."
 
-# Get seeded issue (QA-1)
-curl -s -H 'Authorization: Bearer x' http://localhost:4001/rest/api/3/issue/QA-1
+services=("Jira:4001" "TestRail:4002" "Slack:4003")
 
-# Create via API (JSON)
-curl -s -X POST http://localhost:4001/rest/api/3/issue \
-  -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer x' \
-  -d '{"fields":{"summary":"Test create","description":"from curl","issuetype":{"name":"Bug"}}}'
+for service in "${services[@]}"; do
+    name=${service%%:*}
+    port=${service##*:}
+    
+    if curl -s -f "http://localhost:$port/health" > /dev/null; then
+        echo "✅ $name Mock (port $port) - Healthy"
+    else
+        echo "❌ $name Mock (port $port) - Not responding"
+    fi
+done
 ```
 
-## Where things live
+### Integration Test Example
 
-- Jira code: `mock-services/jira-mock/` (`app.py`, `templates/`, `Dockerfile`, `requirements.txt`)
-- Shared seeds: `mock-services/shared/seed/`
-- Top-level compose: `docker-compose.yml`
+```bash
+# Test complete workflow across all services
+echo "🚀 Testing integration workflow..."
 
-## Next steps / TODO
+# 1. Create Jira issue
+ISSUE_RESPONSE=$(curl -s -X POST "http://localhost:4001/rest/api/3/issue" \
+  -H "Authorization: Bearer token" \
+  -H "Content-Type: application/json" \
+  -d '{"fields":{"summary":"Integration test issue","issuetype":{"name":"Bug"}}}')
 
-- Implement TestRail mock (`mock-services/testrail-mock/`) on port 4002
-- Implement Slack mock (`mock-services/slack-mock/`) on port 4003
-- Add Postman collections (optional)
+ISSUE_KEY=$(echo $ISSUE_RESPONSE | jq -r '.key')
+echo "📝 Created Jira issue: $ISSUE_KEY"
+
+# 2. Create TestRail test case
+TEST_RESPONSE=$(curl -s -X POST "http://localhost:4002/index.php?/api/v2/add_case/1" \
+  -H "Authorization: Bearer token" \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Test for '$ISSUE_KEY'","template_id":1}')
+
+TEST_ID=$(echo $TEST_RESPONSE | jq -r '.id')
+echo "🧪 Created TestRail case: $TEST_ID"
+
+# 3. Post to Slack
+curl -s -X POST "http://localhost:4003/api/chat.postMessage" \
+  -H "Authorization: Bearer token" \
+  -H "Content-Type: application/json" \
+  -d '{"channel":"qa-reports","text":"Created '$ISSUE_KEY' and test case '$TEST_ID'","username":"IntegrationBot"}'
+
+echo "💬 Posted to Slack channel"
+echo "✅ Integration test completed!"
+```
+
+## 📚 API Documentation
+
+Each service provides interactive API documentation:
+
+- **Jira Mock**: http://localhost:4001/docs
+- **TestRail Mock**: http://localhost:4002/docs  
+- **Slack Mock**: http://localhost:4003/docs
+
+## 📦 Postman Collections
+
+Import the provided Postman collections for interactive API testing:
+
+### Jira Mock
+- Collection: `mock-services/jira-mock/Jira_Mock_API.postman_collection.json`
+- Environment: `mock-services/jira-mock/Jira_Mock_Environment.postman_environment.json`
+
+### TestRail Mock  
+- Collection: `mock-services/testrail-mock/TestRail_Mock_API.postman_collection.json`
+- Environment: `mock-services/testrail-mock/TestRail_Mock_Environment.postman_environment.json`
+
+### Slack Mock
+- Collection: `mock-services/slack-mock/Slack_Mock_API.postman_collection.json`
+- Environment: `mock-services/slack-mock/Slack_Mock_Environment.postman_environment.json`
+
+## 🎓 Educational Use Cases
+
+This mock service suite is perfect for:
+
+### 1. **AI Agent Development Training**
+- Teach students to build AI agents that interact with multiple APIs
+- Demonstrate cross-service workflows and integrations
+- Practice error handling and API authentication
+
+### 2. **API Integration Workshops**
+- Show real-world API patterns and best practices
+- Demonstrate REST API design principles
+- Practice with realistic data and responses
+
+### 3. **DevOps and Testing**
+- CI/CD pipeline testing without external dependencies
+- Load testing and performance benchmarking
+- Integration testing scenarios
+
+### 4. **Agile Workflow Simulation**
+- Demonstrate complete development workflows
+- Show tool integration in modern development practices
+- Practice with realistic project management scenarios
+
+## 🛠️ Development
+
+### Project Structure
+
+```
+Jira_Testrail_Slack_Demo_Service/
+├── docker-compose.yml          # Multi-service orchestration
+├── readme.md                   # This file
+├── service_setup.md           # Technical specifications
+└── mock-services/
+    ├── jira-mock/             # Jira mock service
+    │   ├── app.py             # FastAPI application
+    │   ├── templates/         # Web UI templates
+    │   ├── Dockerfile         # Container definition
+    │   └── README.md          # Service documentation
+    ├── testrail-mock/         # TestRail mock service
+    │   ├── app.py             # FastAPI application
+    │   ├── models.py          # Database models
+    │   ├── routes.py          # API routes
+    │   └── README.md          # Service documentation
+    └── slack-mock/            # Slack mock service
+        ├── app.py             # FastAPI application
+        ├── models.py          # Database models
+        ├── routes.py          # API routes
+        └── README.md          # Service documentation
+```
+
+### Adding New Services
+
+1. Create new directory under `mock-services/`
+2. Follow the established FastAPI + SQLAlchemy pattern
+3. Add service to `docker-compose.yml`
+4. Create comprehensive README.md
+5. Add Postman collection and tests
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Add tests for new functionality
+4. Update documentation
+5. Submit a pull request
+
+## 🚨 Troubleshooting
+
+### Common Issues
+
+**Port Conflicts**:
+```bash
+# Check what's using the ports
+lsof -i :4001 -i :4002 -i :4003
+
+# Kill processes if needed
+pkill -f uvicorn
+```
+
+**Docker Issues**:
+```bash
+# Reset everything
+docker compose down -v
+docker system prune -f
+docker compose up -d --build
+```
+
+**Database Issues**:
+```bash
+# Reset all databases
+rm -f mock-services/*/*.db
+docker compose restart
+```
+
+### Getting Help
+
+1. Check individual service README files
+2. Review API documentation at `/docs` endpoints
+3. Check service logs: `docker compose logs [service-name]`
+4. Verify health endpoints: `curl http://localhost:400[1-3]/health`
+
+## 📄 License
+
+This project is designed for educational and development purposes. Each mock service simulates real APIs for learning and testing without requiring actual service credentials.
 
 ---
-Add further details here as we expand the repository; treat this file as the canonical runbook for demos.
 
+**Ready to start?** Run `docker compose up -d --build` and visit the web interfaces to explore the mock services! 🚀
