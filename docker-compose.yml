@@ -32,6 +32,27 @@ services:
     depends_on:
       - jira-mock
 
+  slack-mock:
+    build: ./mock-services/slack-mock
+    ports:
+      - "4003:4003"
+    volumes:
+      - ./mock-services/slack-mock:/app
+      - slack_db:/app/data
+    environment:
+      - MOCK_AUTH_REQUIRED=true
+      - ENABLE_RATE_LIMIT=false
+      - DEFAULT_SLACK_CHANNEL=qa-reports
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - jira-mock
+      - testrail-mock
+
 volumes:
   jira_db:
   testrail_db:
+  slack_db:

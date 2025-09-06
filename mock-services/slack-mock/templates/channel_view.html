@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            color: #1d1c1d;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4a154b, #350d36);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .channel-info h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .channel-icon {
+            margin-right: 0.5rem;
+            font-size: 1.5rem;
+        }
+        
+        .channel-topic {
+            opacity: 0.9;
+            margin-top: 0.5rem;
+            font-size: 0.95rem;
+        }
+        
+        .nav-links a {
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+        
+        .nav-links a:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .message-form {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .message-form h3 {
+            color: #1264a3;
+            margin-bottom: 1rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #1d1c1d;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1264a3;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .btn {
+            background: #1264a3;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .btn:hover {
+            background: #0f4c75;
+        }
+        
+        .messages-container {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .messages-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #e1e5e9;
+        }
+        
+        .messages-header h3 {
+            color: #1264a3;
+        }
+        
+        .message-count {
+            color: #616061;
+            font-size: 0.9rem;
+        }
+        
+        .messages-list {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            padding: 1rem;
+            border-bottom: 1px solid #f1f3f4;
+            transition: background 0.2s;
+        }
+        
+        .message:hover {
+            background: #f8f9fa;
+        }
+        
+        .message:last-child {
+            border-bottom: none;
+        }
+        
+        .message-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .message-user {
+            font-weight: 600;
+            color: #1d1c1d;
+            margin-right: 0.5rem;
+        }
+        
+        .message-time {
+            font-size: 0.8rem;
+            color: #868686;
+        }
+        
+        .message-text {
+            color: #1d1c1d;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+        
+        .message-ts {
+            font-size: 0.75rem;
+            color: #868686;
+            margin-top: 0.25rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .no-messages {
+            text-align: center;
+            color: #868686;
+            font-style: italic;
+            padding: 3rem;
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 1px solid #e1e5e9;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1264a3;
+        }
+        
+        .stat-label {
+            color: #616061;
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+        
+        .api-example {
+            background: #f8f9fa;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .api-example h4 {
+            color: #1264a3;
+            margin-bottom: 0.5rem;
+        }
+        
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            color: #1264a3;
+            text-decoration: none;
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+        
+        .back-link:hover {
+            color: #0f4c75;
+        }
+        
+        .back-link::before {
+            content: "←";
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="channel-info">
+                <h1>
+                    <span class="channel-icon">#</span>
+                    {{ channel.name }}
+                </h1>
+                {% if channel.topic %}
+                <div class="channel-topic">{{ channel.topic }}</div>
+                {% endif %}
+            </div>
+            <div class="nav-links">
+                <a href="/ui">← All Channels</a>
+                <a href="/docs">API Docs</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-number">{{ messages|length }}</div>
+                <div class="stat-label">Total Messages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ channel.id }}</div>
+                <div class="stat-label">Channel ID</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ "Private" if channel.is_private else "Public" }}</div>
+                <div class="stat-label">Channel Type</div>
+            </div>
+        </div>
+        
+        <div class="message-form">
+            <h3>📝 Post Message</h3>
+            <form id="messageForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" value="TestUser" required>
+                </div>
+                <div class="form-group">
+                    <label for="text">Message:</label>
+                    <textarea id="text" name="text" placeholder="Type your message here..." required></textarea>
+                </div>
+                <button type="submit" class="btn">Send Message</button>
+            </form>
+            
+            <div class="api-example">
+                <h4>API Example:</h4>
+                <div class="code-block">curl -X POST "http://localhost:4003/api/chat.postMessage" \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "channel": "{{ channel.name }}",
+    "text": "Hello from API!",
+    "username": "APIUser"
+  }'</div>
+            </div>
+        </div>
+        
+        <div class="messages-container">
+            <div class="messages-header">
+                <h3>💬 Messages</h3>
+                <div class="message-count">{{ messages|length }} messages</div>
+            </div>
+            
+            <div class="messages-list">
+                {% if messages %}
+                    {% for message in messages %}
+                    <div class="message">
+                        <div class="message-header">
+                            <div class="message-user">{{ message.user }}</div>
+                            <div class="message-time">{{ message.created_on.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                        </div>
+                        <div class="message-text">{{ message.text }}</div>
+                        <div class="message-ts">ts: {{ message.ts }}</div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-messages">
+                        No messages in this channel yet.<br>
+                        Use the form above or the API to post the first message!
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('messageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                channel: '{{ channel.name }}',
+                text: formData.get('text'),
+                username: formData.get('username')
+            };
+            
+            try {
+                const response = await fetch('/api/chat.postMessage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-token'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    // Reload page to show new message
+                    window.location.reload();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + (error.detail || 'Failed to send message'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,553 @@
+{
+	"info": {
+		"_postman_id": "slack-mock-api-collection",
+		"name": "Slack Mock API",
+		"description": "Collection for testing Slack Mock Service endpoints. This mock service simulates Slack's chat.postMessage, conversations.history, and files.upload APIs for development and testing purposes.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "slack-mock"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Service is healthy\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+							"    pm.expect(jsonData.service).to.eql(\"slack-mock\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/health",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"health"
+					]
+				},
+				"description": "Check if the Slack mock service is running and healthy."
+			},
+			"response": []
+		},
+		{
+			"name": "Post Message to Channel",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Message posted successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.ok).to.be.true;",
+							"    pm.expect(jsonData.channel).to.exist;",
+							"    pm.expect(jsonData.ts).to.exist;",
+							"    pm.expect(jsonData.message.text).to.eql(\"Hello from Postman! This is a test message.\");",
+							"});",
+							"",
+							"// Store the timestamp for later use",
+							"var jsonData = pm.response.json();",
+							"pm.environment.set(\"last_message_ts\", jsonData.ts);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"channel\": \"{{default_channel}}\",\n    \"text\": \"Hello from Postman! This is a test message.\",\n    \"username\": \"PostmanBot\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/chat.postMessage",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"chat.postMessage"
+					]
+				},
+				"description": "Post a message to a Slack channel. This endpoint simulates Slack's chat.postMessage API."
+			},
+			"response": []
+		},
+		{
+			"name": "Post Message with Thread",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Threaded message posted successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.ok).to.be.true;",
+							"    pm.expect(jsonData.message.thread_ts).to.exist;",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"channel\": \"{{default_channel}}\",\n    \"text\": \"This is a reply in a thread!\",\n    \"username\": \"PostmanBot\",\n    \"thread_ts\": \"{{last_message_ts}}\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/chat.postMessage",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"chat.postMessage"
+					]
+				},
+				"description": "Post a message as a reply in a thread using the thread_ts parameter."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Conversation History",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Conversation history retrieved\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.ok).to.be.true;",
+							"    pm.expect(jsonData.messages).to.be.an('array');",
+							"    pm.expect(jsonData.has_more).to.be.a('boolean');",
+							"});",
+							"",
+							"pm.test(\"Messages have required fields\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    if (jsonData.messages.length > 0) {",
+							"        var message = jsonData.messages[0];",
+							"        pm.expect(message.type).to.eql('message');",
+							"        pm.expect(message.user).to.exist;",
+							"        pm.expect(message.text).to.exist;",
+							"        pm.expect(message.ts).to.exist;",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/conversations.history?channel={{default_channel}}&limit=50",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"conversations.history"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{default_channel}}"
+						},
+						{
+							"key": "limit",
+							"value": "50"
+						}
+					]
+				},
+				"description": "Get the conversation history for a channel. This endpoint simulates Slack's conversations.history API."
+			},
+			"response": []
+		},
+		{
+			"name": "Get Conversation History with Pagination",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Limited results returned\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.messages.length).to.be.at.most(5);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/api/conversations.history?channel={{default_channel}}&limit=5",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"conversations.history"
+					],
+					"query": [
+						{
+							"key": "channel",
+							"value": "{{default_channel}}"
+						},
+						{
+							"key": "limit",
+							"value": "5"
+						}
+					]
+				},
+				"description": "Get conversation history with a limit to test pagination functionality."
+			},
+			"response": []
+		},
+		{
+			"name": "Upload File",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"File uploaded successfully\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.ok).to.be.true;",
+							"    pm.expect(jsonData.file).to.exist;",
+							"    pm.expect(jsonData.file.id).to.exist;",
+							"    pm.expect(jsonData.file.name).to.exist;",
+							"    pm.expect(jsonData.file.size).to.be.a('number');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "channels",
+							"value": "{{default_channel}}",
+							"type": "text"
+						},
+						{
+							"key": "title",
+							"value": "Test Document",
+							"type": "text"
+						},
+						{
+							"key": "initial_comment",
+							"value": "Uploading a test file via Postman API",
+							"type": "text"
+						},
+						{
+							"key": "file",
+							"type": "file",
+							"src": []
+						}
+					]
+				},
+				"url": {
+					"raw": "{{base_url}}/api/files.upload",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"files.upload"
+					]
+				},
+				"description": "Upload a file to Slack channels. This endpoint simulates Slack's files.upload API. Note: You need to select a file in the form-data section."
+			},
+			"response": []
+		},
+		{
+			"name": "Post Message - Missing Auth (401)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test(\"Error message for missing auth\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.detail).to.include(\"Authorization\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"channel\": \"{{default_channel}}\",\n    \"text\": \"This should fail without auth\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/chat.postMessage",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"chat.postMessage"
+					]
+				},
+				"description": "Test that posting a message without authentication returns 401 error."
+			},
+			"response": []
+		},
+		{
+			"name": "Post Message - Invalid Channel (404)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"",
+							"pm.test(\"Error message for channel not found\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.detail).to.include(\"Channel not found\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"channel\": \"non-existent-channel\",\n    \"text\": \"This should fail for invalid channel\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/chat.postMessage",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"chat.postMessage"
+					]
+				},
+				"description": "Test that posting to a non-existent channel returns 404 error."
+			},
+			"response": []
+		},
+		{
+			"name": "Post Message - Validation Error (422)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 422\", function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"",
+							"pm.test(\"Validation error details\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.detail).to.be.an('array');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"channel\": \"{{default_channel}}\"\n    // Missing required 'text' field\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/api/chat.postMessage",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"api",
+						"chat.postMessage"
+					]
+				},
+				"description": "Test validation error when required fields are missing."
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Set default values if not already set",
+					"if (!pm.environment.get(\"base_url\")) {",
+					"    pm.environment.set(\"base_url\", \"http://localhost:4003\");",
+					"}",
+					"",
+					"if (!pm.environment.get(\"auth_token\")) {",
+					"    pm.environment.set(\"auth_token\", \"demo-token-12345\");",
+					"}",
+					"",
+					"if (!pm.environment.get(\"default_channel\")) {",
+					"    pm.environment.set(\"default_channel\", \"qa-reports\");",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test to check response time",
+					"pm.test(\"Response time is less than 2000ms\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+					"});"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:4003",
+			"type": "string"
+		},
+		{
+			"key": "auth_token",
+			"value": "demo-token-12345",
+			"type": "string"
+		},
+		{
+			"key": "default_channel",
+			"value": "qa-reports",
+			"type": "string"
+		}
+	]
+}
