@@ -313,9 +313,9 @@ async def create_issue(issue: IssueCreate, authorization: Optional[str] = Header
         raise HTTPException(status_code=400, detail="Missing issue payload")
     require_bearer(authorization)
     fields = issue.fields
-    summary = fields.get("summary") or fields.get("project", {}).get("name", "No summary")
-    description = fields.get("description", "")
-    issue_type = fields.get("issuetype", {}).get("name", "Task")
+    summary = fields.summary or "No summary"
+    description = fields.description or ""
+    issue_type = fields.issuetype.name if fields.issuetype else "Task"
 
     conn = get_db_conn()
     c = conn.cursor()
