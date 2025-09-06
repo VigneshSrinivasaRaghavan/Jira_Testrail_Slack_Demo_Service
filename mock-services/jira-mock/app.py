@@ -198,6 +198,18 @@ def get_db_conn():
     return conn
 
 
+def require_bearer(authorization: Optional[str]):
+    """Validate Bearer token authorization"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing Authorization header. Please provide Bearer token.")
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid Authorization header. Must be 'Bearer <token>'.")
+    # In mock service, we accept any token after "Bearer "
+    token = authorization[7:]  # Remove "Bearer " prefix
+    if not token.strip():
+        raise HTTPException(status_code=401, detail="Empty Bearer token provided.")
+
+
 @app.on_event("startup")
 async def startup():
     # ensure db
