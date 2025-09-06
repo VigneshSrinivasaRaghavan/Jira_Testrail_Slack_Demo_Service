@@ -14,10 +14,57 @@ Lightweight local mocks for Jira, TestRail and Slack used for teaching/demoing a
 - `podman` / `podman compose` (recommended if you don't have Docker Desktop)
 - `sqlite3` (optional, for local DB inspection)
 
-## Quick start
+## 🚀 Quick Start (One-Click Launch)
 
-Local (venv)
+### 🍎 Mac/Linux Users
 
+**Option 1: Local Development (Recommended)**
+```bash
+cd mock-services/jira-mock
+./start.sh
+```
+
+**Option 2: Container (Docker/Podman)**
+```bash
+cd mock-services/jira-mock
+./start-jira.sh
+```
+
+**Stop Service:**
+```bash
+cd mock-services/jira-mock
+./stop-jira.sh
+```
+
+### 🪟 Windows Users
+
+**Option 1: Local Development (Recommended)**
+```cmd
+cd mock-services\jira-mock
+start.bat
+```
+
+**Option 2: Container (Docker Desktop)**
+```cmd
+cd mock-services\jira-mock
+start-jira.bat
+```
+
+**Option 3: PowerShell (Alternative)**
+```powershell
+cd mock-services\jira-mock
+.\start-jira.ps1
+```
+
+**Stop Service:**
+```cmd
+cd mock-services\jira-mock
+stop-jira.bat
+```
+
+## 📋 Manual Setup (If Scripts Don't Work)
+
+### Mac/Linux - Local Development
 ```bash
 cd mock-services/jira-mock
 python3 -m venv .venv
@@ -27,13 +74,22 @@ pip install -r requirements.txt
 python -m uvicorn app:app --host 0.0.0.0 --port 4001 --reload
 ```
 
-Podman (container)
+### Windows - Local Development
+```cmd
+cd mock-services\jira-mock
+python -m venv .venv
+.venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+python -m uvicorn app:app --host 0.0.0.0 --port 4001 --reload
+```
 
+### Container (Any OS with Docker/Podman)
 ```bash
-# from repo root
-podman compose up -d --build jira-mock
-podman compose logs -f jira-mock
-podman compose down
+# From repo root
+docker compose up -d --build jira-mock
+docker compose logs -f jira-mock
+docker compose down
 ```
 
 ## Environment

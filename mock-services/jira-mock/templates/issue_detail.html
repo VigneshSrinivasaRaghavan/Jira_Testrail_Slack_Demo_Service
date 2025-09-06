@@ -3,10 +3,121 @@
   <head>
     <meta charset="utf-8" />
     <title>Jira Mock - Issue {{ issue.key }}</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 40px; }
+      .meta { color: #666; font-size: 14px; margin-bottom: 12px }
+      .section { margin-top: 18px; }
+      .label { font-weight: bold; }
+      .chip { display:inline-block; padding:2px 8px; background:#eee; border-radius:12px; margin-right:6px }
+      .grid { display:flex; gap:24px }
+      .left { flex:1 }
+      .right { width:300px }
+      pre { background:#f8f8f8; padding:12px }
+    </style>
   </head>
   <body>
     <h1>{{ issue.key }} - {{ issue.summary }}</h1>
-    <p>{{ issue.description }}</p>
-    <a href="/ui">Back to list</a>
+    <div class="meta">
+      <span class="label">Status:</span> To Do &nbsp;|&nbsp;
+      <span class="label">Priority:</span> Medium &nbsp;|&nbsp;
+      <span class="label">Reporter:</span> Mock Reporter
+    </div>
+
+    <div class="grid">
+      <div class="left">
+        <div class="section">
+          <div class="label">Description</div>
+          <div>{{ issue.description }}</div>
+        </div>
+
+        <div class="section">
+          <div class="label">Comments</div>
+          <div>
+            {% if issue.comments %}
+              <ul>
+                {% for c in issue.comments %}
+                  <li><strong>{{ c.author.displayName }}</strong> ({{ c.created }})<div>{{ c.body }}</div></li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div>No comments</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="label">Attachments</div>
+          <div>
+            {% if issue.attachment %}
+              <ul>
+                {% for a in issue.attachment %}
+                  <li>{{ a.filename }} ({{ a.size }})</li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <div>No attachments</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="section">
+          <div class="label">Project</div>
+          <div>{{ issue.project.key }} - {{ issue.project.name }}</div>
+        </div>
+
+        <div class="section">
+          <div class="label">Assignee</div>
+          <div>
+            {% if issue.assignee %}
+              {{ issue.assignee.displayName }}
+            {% else %}
+              Unassigned
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="label">Reporter</div>
+          <div>{{ issue.reporter.displayName }}</div>
+        </div>
+
+        <div class="section">
+          <div class="label">Created</div>
+          <div>{{ issue.created }}</div>
+        </div>
+
+        <div class="section">
+          <div class="label">Updated</div>
+          <div>{{ issue.updated }}</div>
+        </div>
+
+        <div class="section">
+          <div class="label">Labels</div>
+          <div>
+            {% if issue.labels %}
+              {% for l in issue.labels %}<span class="chip">{{ l }}</span>{% endfor %}
+            {% else %}
+              <div>No labels</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="label">Components</div>
+          <div>
+            {% if issue.components %}
+              {% for c in issue.components %}<div>{{ c.name }}</div>{% endfor %}
+            {% else %}
+              <div>No components</div>
+            {% endif %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <p><a href="/ui">Back to list</a></p>
   </body>
 </html>
