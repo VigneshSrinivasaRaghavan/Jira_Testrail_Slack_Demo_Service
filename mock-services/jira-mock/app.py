@@ -215,14 +215,23 @@ async def startup():
     # ensure db
     conn = get_db_conn()
     c = conn.cursor()
+    
+    # Drop and recreate table to ensure schema is correct
+    c.execute("DROP TABLE IF EXISTS issues")
     c.execute("""
-    CREATE TABLE IF NOT EXISTS issues (
+    CREATE TABLE issues (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         key TEXT UNIQUE,
         summary TEXT,
         description TEXT,
         issue_type TEXT,
-        created_on TEXT
+        priority TEXT DEFAULT 'Medium',
+        assignee TEXT,
+        reporter TEXT DEFAULT 'mock-reporter',
+        labels TEXT DEFAULT '[]',
+        components TEXT DEFAULT '[]',
+        created_on TEXT,
+        updated_on TEXT
     )
     """)
     conn.commit()
@@ -316,12 +325,19 @@ async def create_issue(issue: IssueCreate, authorization: Optional[str] = Header
     summary = fields.summary or "No summary"
     description = fields.description or ""
     issue_type = fields.issuetype.name if fields.issuetype else "Task"
+    priority = fields.priority.name if fields.priority else "Medium"
+    assignee = fields.assignee if fields.assignee else None
+    reporter = fields.reporter if fields.reporter else "mock-reporter"
+    labels = json.dumps(fields.labels) if fields.labels else "[]"
+    components = json.dumps(fields.components) if fields.components else "[]"
 
     conn = get_db_conn()
     c = conn.cursor()
     # generate key like QA-<id>
-    c.execute("INSERT INTO issues (key, summary, description, issue_type, created_on) VALUES (?, ?, ?, ?, datetime('now'))",
-              (None, summary, description, issue_type))
+    c.execute("""INSERT INTO issues 
+                 (key, summary, description, issue_type, priority, assignee, reporter, labels, components, created_on, updated_on) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))""",
+              (None, summary, description, issue_type, priority, assignee, reporter, labels, components))
     issue_id = c.lastrowid
     key = f"QA-{issue_id}"
     c.execute("UPDATE issues SET key=? WHERE id=?", (key, issue_id))
@@ -448,13 +464,13 @@ async def get_issue(issue_key: str = Path(..., example="QA-1", description="Issu
         raise HTTPException(status_code=404, detail="Issue not found")
     
     # Build response safely handling None values
-    created = row[5] if row[5] else None  # created_on
-    updated = row[11] if row[11] else created  # updated_on
-    priority_name = row[6] if row[6] else "Medium"  # priority
-    assignee_val = row[7]  # assignee
-    reporter_val = row[8]  # reporter
-    labels_val = row[9]  # labels
-    components_val = row[10]  # components
+    created = row["created_on"] if row["created_on"] else None
+    updated = row["updated_on"] if row["updated_on"] else created
+    priority_name = row["priority"] if row["priority"] else "Medium"
+    assignee_val = row["assignee"]
+    reporter_val = row["reporter"]
+    labels_val = row["labels"]
+    components_val = row["components"]
     
     # Parse JSON fields safely
     labels_parsed = []
@@ -471,14 +487,14 @@ async def get_issue(issue_key: str = Path(..., example="QA-1", description="Issu
             components_parsed = []
     
     return {
-        "id": row[0],  # id
-        "key": row[1],  # key
-        "self": f"/rest/api/3/issue/{row[1]}",
+        "id": row["id"],
+        "key": row["key"],
+        "self": f"/rest/api/3/issue/{row['key']}",
         "fields": {
             "project": {"key": os.environ.get("JIRA_PROJECT_KEY", "QA"), "name": "QA Project"},
-            "summary": row[2],  # summary
-            "description": row[3],  # description
-            "issuetype": {"name": row[4]},  # issue_type
+            "summary": row["summary"],
+            "description": row["description"],
+            "issuetype": {"name": row["issue_type"]},
             "priority": {"name": priority_name},
             "status": {"name": "To Do", "statusCategory": {"name": "To Do"}},
             "assignee": ({"displayName": assignee_val} if assignee_val else None),
