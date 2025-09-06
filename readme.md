@@ -18,63 +18,125 @@ Each service includes:
 - 📋 **Postman collections** for API testing
 - 🧪 **Test suites** for validation
 
-## 🚀 Quick Start - All Services
+## 🚀 Quick Start - Multiple Ways to Run
 
-### Option 1: Docker Compose (Recommended)
+### 📋 All Available Startup Methods
 
-Start all three services with a single command:
+| Method | Platform | Command | Use Case |
+|--------|----------|---------|----------|
+| **🐳 Docker Compose** | All OS | `docker compose up -d --build` | **Recommended** - One command for all services |
+| **🔧 Shell Scripts** | Mac/Linux | `./start.sh` | Local development, easy debugging |
+| **🪟 Batch Files** | Windows | `start.bat` | Windows local development |
+| **🐍 Python Direct** | All OS | `python app.py` or `python start_simple.py` | Direct Python execution |
+| **⚡ Manual Setup** | All OS | `uvicorn app:app --host 0.0.0.0 --port 400X` | Full control over startup |
+
+### 🎯 Method 1: Docker Compose (Easiest - All Services at Once)
+
+**Start all three services with one command:**
 
 ```bash
-# Clone the repository
+# Clone and navigate
 git clone <repository-url>
 cd Jira_Testrail_Slack_Demo_Service
 
-# Start all services
+# Start everything
 docker compose up -d --build
 
-# View logs
+# View logs (optional)
 docker compose logs -f
 
-# Stop all services
+# Stop everything
 docker compose down
 ```
 
-**Service URLs:**
-- 🎫 **Jira Mock**: http://localhost:4001/ui
-- 🧪 **TestRail Mock**: http://localhost:4002/ui  
-- 💬 **Slack Mock**: http://localhost:4003/ui
+**✅ Result**: All services running on ports 4001, 4002, 4003
 
-### Option 2: Individual Service Startup
+### 🔧 Method 2: Individual Shell Scripts (Mac/Linux)
 
-Start services individually for development:
+**Start each service in separate terminals:**
 
 ```bash
 # Terminal 1 - Jira Mock
 cd mock-services/jira-mock
-./start.sh
+./start.sh                    # Starts on port 4001
 
 # Terminal 2 - TestRail Mock  
 cd mock-services/testrail-mock
-./start.sh
+./start.sh                    # Starts on port 4002
 
 # Terminal 3 - Slack Mock
 cd mock-services/slack-mock
-./start.sh
+./start.sh                    # Starts on port 4003
 ```
 
-### Option 3: Windows Users
+### 🪟 Method 3: Windows Batch Files
+
+**Start each service in separate command prompts:**
 
 ```cmd
-# Start each service in separate command prompts
+# Command Prompt 1 - Jira Mock
 cd mock-services\jira-mock
 start.bat
 
-cd mock-services\testrail-mock  
+# Command Prompt 2 - TestRail Mock  
+cd mock-services\testrail-mock
 start.bat
 
+# Command Prompt 3 - Slack Mock
 cd mock-services\slack-mock
 start.bat
 ```
+
+### 🐍 Method 4: Direct Python Execution
+
+**Run Python files directly (after installing dependencies):**
+
+```bash
+# Jira Mock
+cd mock-services/jira-mock
+pip install -r requirements.txt
+python app.py                 # or python start_simple.py
+
+# TestRail Mock
+cd mock-services/testrail-mock  
+pip install -r requirements.txt
+python app.py
+
+# Slack Mock
+cd mock-services/slack-mock
+pip install -r requirements.txt
+python app_simple.py          # or python start_simple.py
+```
+
+### ⚡ Method 5: Manual Uvicorn (Advanced)
+
+**Full manual control:**
+
+```bash
+# Install dependencies for each service first
+cd mock-services/jira-mock && pip install -r requirements.txt
+cd ../testrail-mock && pip install -r requirements.txt  
+cd ../slack-mock && pip install -r requirements.txt
+
+# Start each service manually
+uvicorn mock-services.jira-mock.app:app --host 0.0.0.0 --port 4001 &
+uvicorn mock-services.testrail-mock.app:app --host 0.0.0.0 --port 4002 &
+uvicorn mock-services.slack-mock.app_simple:app --host 0.0.0.0 --port 4003 &
+```
+
+### 🎯 Quick Decision Guide
+
+| If you want... | Use this method |
+|----------------|-----------------|
+| **Easiest setup** | 🐳 Docker Compose |
+| **Local development** | 🔧 Shell scripts (Mac/Linux) or 🪟 Batch files (Windows) |
+| **Custom Python environment** | 🐍 Direct Python execution |
+| **Full control** | ⚡ Manual Uvicorn |
+
+**Service URLs (all methods):**
+- 🎫 **Jira Mock**: http://localhost:4001/ui
+- 🧪 **TestRail Mock**: http://localhost:4002/ui  
+- 💬 **Slack Mock**: http://localhost:4003/ui
 
 ## 📋 Service Details
 
@@ -358,6 +420,50 @@ docker compose restart
 
 This project is designed for educational and development purposes. Each mock service simulates real APIs for learning and testing without requiring actual service credentials.
 
+## 📋 Quick Reference Card
+
+### 🚀 Fastest Way to Start (Copy & Paste)
+
+```bash
+# Option 1: All services with Docker (Recommended)
+docker compose up -d --build
+
+# Option 2: Individual services (Mac/Linux)
+cd mock-services/jira-mock && ./start.sh &
+cd ../testrail-mock && ./start.sh &  
+cd ../slack-mock && ./start.sh &
+
+# Option 3: Individual services (Windows)
+# Run each in separate command prompts:
+# cd mock-services\jira-mock && start.bat
+# cd mock-services\testrail-mock && start.bat
+# cd mock-services\slack-mock && start.bat
+```
+
+### 🌐 Service Access URLs
+
+| Service | Web UI | API Docs | Health Check |
+|---------|--------|----------|--------------|
+| **Jira Mock** | http://localhost:4001/ui | http://localhost:4001/docs | http://localhost:4001/health |
+| **TestRail Mock** | http://localhost:4002/ui | http://localhost:4002/docs | http://localhost:4002/health |
+| **Slack Mock** | http://localhost:4003/ui | http://localhost:4003/docs | http://localhost:4003/health |
+
+### 🔧 Quick Commands
+
+```bash
+# Check all services are running
+curl http://localhost:4001/health && curl http://localhost:4002/health && curl http://localhost:4003/health
+
+# Stop Docker services
+docker compose down
+
+# View logs
+docker compose logs -f
+
+# Reset everything
+docker compose down -v && docker compose up -d --build
+```
+
 ---
 
-**Ready to start?** Run `docker compose up -d --build` and visit the web interfaces to explore the mock services! 🚀
+**Ready to start?** Choose your preferred method above and visit the web interfaces to explore the mock services! 🚀
