@@ -1,0 +1,984 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "TestRail Mock API",
+		"description": "Complete API collection for TestRail Mock Service\n\nBase URL: http://localhost:4002\n\nThis collection includes all endpoints for:\n- Project Management\n- Section Management\n- Test Case Management\n- Test Result Management\n- Test Run Management\n- Statistics and Metadata\n- Legacy TestRail Compatibility\n\nStatus IDs:\n- 1 = Passed ✅\n- 2 = Blocked ⛔\n- 3 = Untested ❓\n- 4 = Retest 🔄\n- 5 = Failed ❌\n\nType IDs:\n- 1 = Functional\n- 2 = Regression\n- 3 = Smoke\n- 4 = Performance\n- 5 = Security\n\nPriority IDs:\n- 1 = Critical\n- 2 = High\n- 3 = Medium\n- 4 = Low",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12345678"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check if the TestRail Mock service is running"
+					},
+					"response": [
+						{
+							"name": "Health Check Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/health",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"health"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"status\": \"healthy\",\n    \"service\": \"testrail-mock\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Projects",
+			"item": [
+				{
+					"name": "Get All Projects",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/projects",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"projects"
+							]
+						},
+						"description": "Get all projects in the TestRail mock service"
+					},
+					"response": [
+						{
+							"name": "Get All Projects Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/projects",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"projects"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Demo Project\",\n        \"description\": \"Sample project for TestRail mock service\",\n        \"created_on\": \"2025-09-06T19:37:05.856108\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Project by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/project/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"project",
+								"{{project_id}}"
+							]
+						},
+						"description": "Get a specific project by ID"
+					},
+					"response": [
+						{
+							"name": "Get Project Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/project/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"project",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"name\": \"Demo Project\",\n    \"description\": \"Sample project for TestRail mock service\",\n    \"created_on\": \"2025-09-06T19:37:05.856108\"\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Sections",
+			"item": [
+				{
+					"name": "Get Sections for Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/sections/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"sections",
+								"{{project_id}}"
+							]
+						},
+						"description": "Get all sections for a specific project"
+					},
+					"response": [
+						{
+							"name": "Get Sections Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/sections/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"sections",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"project_id\": 1,\n        \"name\": \"Authentication\",\n        \"description\": \"Login and authentication tests\",\n        \"parent_id\": null,\n        \"created_on\": \"2025-09-06T19:37:05.856872\"\n    },\n    {\n        \"id\": 2,\n        \"project_id\": 1,\n        \"name\": \"User Management\",\n        \"description\": \"User creation, editing, and deletion\",\n        \"parent_id\": null,\n        \"created_on\": \"2025-09-06T19:37:05.856874\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Create Section",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"New Test Section\",\n    \"description\": \"Section created via API\",\n    \"parent_id\": null\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/sections/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"sections",
+								"{{project_id}}"
+							]
+						},
+						"description": "Create a new section in a project"
+					}
+				}
+			]
+		},
+		{
+			"name": "Test Cases",
+			"item": [
+				{
+					"name": "Get Cases for Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/cases/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"cases",
+								"{{project_id}}"
+							]
+						},
+						"description": "Get all test cases for a specific project"
+					},
+					"response": [
+						{
+							"name": "Get Cases Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"section_id\": 1,\n        \"title\": \"Login with valid credentials\",\n        \"template_id\": 2,\n        \"type_id\": 1,\n        \"priority_id\": 1,\n        \"steps\": [\n            {\n                \"step\": \"Navigate to login page\",\n                \"expected\": \"Login form is displayed\"\n            },\n            {\n                \"step\": \"Enter valid username and password\",\n                \"expected\": \"Credentials are accepted\"\n            }\n        ],\n        \"expected_result\": \"User successfully logs in and sees dashboard\",\n        \"preconditions\": \"User account exists and is active\",\n        \"created_on\": \"2025-09-06T19:37:05.858394\",\n        \"updated_on\": \"2025-09-06T19:37:05.858395\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Single Test Case",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/case/{{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"case",
+								"{{case_id}}"
+							]
+						},
+						"description": "Get a specific test case by ID"
+					},
+					"response": [
+						{
+							"name": "Get Case Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/case/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"case",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"id\": 1,\n    \"section_id\": 1,\n    \"title\": \"Login with valid credentials\",\n    \"template_id\": 2,\n    \"type_id\": 1,\n    \"priority_id\": 1,\n    \"steps\": [\n        {\n            \"step\": \"Navigate to login page\",\n            \"expected\": \"Login form is displayed\"\n        }\n    ],\n    \"expected_result\": \"User successfully logs in and sees dashboard\",\n    \"preconditions\": \"User account exists and is active\",\n    \"created_on\": \"2025-09-06T19:37:05.858394\",\n    \"updated_on\": \"2025-09-06T19:37:05.858395\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Create Test Case (Simple)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Simple API Test Case\",\n    \"template_id\": 1,\n    \"type_id\": 1,\n    \"priority_id\": 2,\n    \"expected_result\": \"Test case should be created successfully\",\n    \"preconditions\": \"API endpoint is available\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/cases/{{section_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"cases",
+								"{{section_id}}"
+							]
+						},
+						"description": "Create a simple test case without steps"
+					}
+				},
+				{
+					"name": "Create Test Case (with Steps)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"API Test Case with Steps\",\n    \"template_id\": 2,\n    \"type_id\": 1,\n    \"priority_id\": 1,\n    \"expected_result\": \"Test case should be created with step-by-step instructions\",\n    \"preconditions\": \"API endpoint is available and user has permissions\",\n    \"steps\": [\n        {\n            \"step\": \"Send POST request to create test case\",\n            \"expected\": \"API returns 201 status code\"\n        },\n        {\n            \"step\": \"Verify test case is created in database\",\n            \"expected\": \"Test case appears in test case list\"\n        },\n        {\n            \"step\": \"Validate all fields are saved correctly\",\n            \"expected\": \"All provided data matches the created test case\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/cases/{{section_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"cases",
+								"{{section_id}}"
+							]
+						},
+						"description": "Create a test case with detailed step-by-step instructions"
+					}
+				}
+			]
+		},
+		{
+			"name": "Test Results",
+			"item": [
+				{
+					"name": "Get Results for Test Case",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/results/{{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"results",
+								"{{case_id}}"
+							]
+						},
+						"description": "Get all test results for a specific test case"
+					},
+					"response": [
+						{
+							"name": "Get Results Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/results/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"results",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"case_id\": 1,\n        \"status_id\": 1,\n        \"comment\": \"Test executed successfully\",\n        \"elapsed\": \"2m\",\n        \"created_on\": \"2025-09-06T19:50:13.464302\",\n        \"created_by\": \"mock-user\"\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Add Test Result - Passed",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status_id\": 1,\n    \"comment\": \"Test case executed successfully. All steps completed without issues.\",\n    \"elapsed\": \"2m 30s\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/results/{{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"results",
+								"{{case_id}}"
+							]
+						},
+						"description": "Add a PASSED result to a test case"
+					}
+				},
+				{
+					"name": "Add Test Result - Failed",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status_id\": 5,\n    \"comment\": \"Test failed at step 2. Login button did not respond to click.\",\n    \"elapsed\": \"1m 45s\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/results/{{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"results",
+								"{{case_id}}"
+							]
+						},
+						"description": "Add a FAILED result to a test case"
+					}
+				},
+				{
+					"name": "Add Test Result - Blocked",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status_id\": 2,\n    \"comment\": \"Cannot execute test - login service is down.\",\n    \"elapsed\": \"30s\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/results/{{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"results",
+								"{{case_id}}"
+							]
+						},
+						"description": "Add a BLOCKED result to a test case"
+					}
+				}
+			]
+		},
+		{
+			"name": "Test Runs",
+			"item": [
+				{
+					"name": "Get Runs for Project",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/runs/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"runs",
+								"{{project_id}}"
+							]
+						},
+						"description": "Get all test runs for a specific project"
+					},
+					"response": [
+						{
+							"name": "Get Runs Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/runs/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"runs",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"project_id\": 1,\n        \"name\": \"API Test Run via Agent\",\n        \"description\": \"Test run created via API for agent testing\",\n        \"created_on\": \"2025-09-06T19:50:49.499728\",\n        \"is_completed\": false\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Create Test Run",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Regression Test Run - Sprint 23\",\n    \"description\": \"Comprehensive regression testing for Sprint 23 release. Includes authentication, user management, and API tests.\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/runs/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"runs",
+								"{{project_id}}"
+							]
+						},
+						"description": "Create a new test run in a project"
+					}
+				}
+			]
+		},
+		{
+			"name": "Templates & Metadata",
+			"item": [
+				{
+					"name": "Get Templates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/templates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"templates"
+							]
+						},
+						"description": "Get all available test case templates"
+					},
+					"response": [
+						{
+							"name": "Get Templates Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/templates",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"templates"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Test Case (Text)\",\n        \"is_default\": true\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Test Case (Steps)\",\n        \"is_default\": false\n    },\n    {\n        \"id\": 3,\n        \"name\": \"Exploratory Session\",\n        \"is_default\": false\n    }\n]"
+						}
+					]
+				},
+				{
+					"name": "Get Project Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v2/stats/{{project_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"stats",
+								"{{project_id}}"
+							]
+						},
+						"description": "Get comprehensive statistics for a project including test case counts and status distribution"
+					},
+					"response": [
+						{
+							"name": "Get Stats Success",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/stats/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"stats",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"project_id\": 1,\n    \"total_cases\": 6,\n    \"sections\": [\n        {\n            \"section_id\": 1,\n            \"section_name\": \"Authentication\",\n            \"case_count\": 4,\n            \"status_counts\": {\n                \"1\": 1,\n                \"2\": 0,\n                \"3\": 0,\n                \"4\": 0,\n                \"5\": 0\n            }\n        }\n    ],\n    \"overall_status_counts\": {\n        \"1\": 1,\n        \"2\": 0,\n        \"3\": 0,\n        \"4\": 0,\n        \"5\": 0\n    }\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Legacy TestRail Endpoints",
+			"item": [
+				{
+					"name": "Legacy - Get Test Case",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/index.php?case_id={{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"index.php"
+							],
+							"query": [
+								{
+									"key": "case_id",
+									"value": "{{case_id}}"
+								}
+							]
+						},
+						"description": "Legacy TestRail-style endpoint to get a test case (compatible with existing TestRail integrations)"
+					}
+				},
+				{
+					"name": "Legacy - Add Test Case",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Legacy API Test Case\",\n    \"template_id\": 1,\n    \"type_id\": 2,\n    \"priority_id\": 3,\n    \"expected_result\": \"Test case created via legacy TestRail endpoint\",\n    \"preconditions\": \"Legacy API compatibility required\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/index.php?section_id={{section_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"index.php"
+							],
+							"query": [
+								{
+									"key": "section_id",
+									"value": "{{section_id}}"
+								}
+							]
+						},
+						"description": "Legacy TestRail-style endpoint to create a test case (compatible with existing TestRail integrations)"
+					}
+				}
+			]
+		},
+		{
+			"name": "Test Scenarios",
+			"item": [
+				{
+					"name": "Complete Test Workflow",
+					"item": [
+						{
+							"name": "1. Create Test Case",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Complete Workflow Test Case\",\n    \"template_id\": 2,\n    \"type_id\": 1,\n    \"priority_id\": 1,\n    \"expected_result\": \"Workflow test should complete successfully\",\n    \"preconditions\": \"System is in clean state\",\n    \"steps\": [\n        {\n            \"step\": \"Initialize test environment\",\n            \"expected\": \"Environment is ready for testing\"\n        },\n        {\n            \"step\": \"Execute main test logic\",\n            \"expected\": \"Test logic completes without errors\"\n        },\n        {\n            \"step\": \"Verify results\",\n            \"expected\": \"All assertions pass\"\n        }\n    ]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"1"
+									]
+								},
+								"description": "Step 1: Create a test case for the workflow"
+							}
+						},
+						{
+							"name": "2. Execute Test (Pass)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"status_id\": 1,\n    \"comment\": \"Test executed successfully. All steps completed as expected.\",\n    \"elapsed\": \"3m 15s\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/results/{{created_case_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"results",
+										"{{created_case_id}}"
+									]
+								},
+								"description": "Step 2: Add a passing result to the created test case"
+							}
+						},
+						{
+							"name": "3. Create Test Run",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"name\": \"Workflow Test Run\",\n    \"description\": \"Test run for complete workflow validation\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/runs/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"runs",
+										"1"
+									]
+								},
+								"description": "Step 3: Create a test run to organize the test execution"
+							}
+						},
+						{
+							"name": "4. Get Final Statistics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/stats/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"stats",
+										"1"
+									]
+								},
+								"description": "Step 4: Get updated project statistics after test execution"
+							}
+						}
+					],
+					"description": "A complete test workflow demonstrating the full lifecycle: Create test case → Execute test → Create test run → Get statistics"
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:4002",
+			"type": "string"
+		},
+		{
+			"key": "project_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "section_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "case_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "created_case_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

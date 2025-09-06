@@ -1,0 +1,47 @@
+{
+  "test_cases": [
+    {
+      "section_id": 1,
+      "title": "Login with valid credentials",
+      "template_id": 2,
+      "type_id": 1,
+      "priority_id": 1,
+      "steps": [
+        {"step": "Navigate to login page", "expected": "Login form is displayed"},
+        {"step": "Enter valid username and password", "expected": "Credentials are accepted"},
+        {"step": "Click login button", "expected": "User is redirected to dashboard"}
+      ],
+      "expected_result": "User successfully logs in and sees dashboard",
+      "preconditions": "User account exists and is active"
+    },
+    {
+      "section_id": 1,
+      "title": "Login with invalid credentials",
+      "template_id": 2,
+      "type_id": 1,
+      "priority_id": 2,
+      "steps": [
+        {"step": "Navigate to login page", "expected": "Login form is displayed"},
+        {"step": "Enter invalid username or password", "expected": "Invalid credentials entered"},
+        {"step": "Click login button", "expected": "Error message is shown"}
+      ],
+      "expected_result": "Login fails with appropriate error message",
+      "preconditions": "Login page is accessible"
+    },
+    {
+      "section_id": 2,
+      "title": "Create new user account",
+      "template_id": 2,
+      "type_id": 1,
+      "priority_id": 2,
+      "steps": [
+        {"step": "Navigate to user management page", "expected": "User list is displayed"},
+        {"step": "Click 'Add User' button", "expected": "User creation form opens"},
+        {"step": "Fill in required user details", "expected": "Form accepts valid data"},
+        {"step": "Submit the form", "expected": "User is created successfully"}
+      ],
+      "expected_result": "New user account is created and appears in user list",
+      "preconditions": "Admin user is logged in"
+    }
+  ]
+}

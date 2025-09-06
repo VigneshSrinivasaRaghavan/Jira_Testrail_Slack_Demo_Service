@@ -1,0 +1,666 @@
+{
+  "info": {
+    "name": "TestRail Mock API",
+    "description": "Complete API collection for TestRail Mock Service with enhanced features",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{auth_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4002",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "test-token-123",
+      "type": "string"
+    },
+    {
+      "key": "project_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "section_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "case_id",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "API Documentation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/docs",
+              "host": ["{{base_url}}"],
+              "path": ["docs"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Projects",
+      "item": [
+        {
+          "name": "Get All Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "projects"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/project/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "project", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Project\",\n  \"description\": \"Created via Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "projects"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Project Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/stats/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "stats", "{{project_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sections",
+      "item": [
+        {
+          "name": "Get Sections for Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/sections/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "sections", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Section by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/section/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "section", "{{section_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Section",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Test Section\",\n  \"description\": \"Created via Postman API\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/sections/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "sections", "{{project_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Test Cases",
+      "item": [
+        {
+          "name": "Get All Cases for Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/cases/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "cases", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cases by Section",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/cases/{{project_id}}?section_id={{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "cases", "{{project_id}}"],
+              "query": [
+                {
+                  "key": "section_id",
+                  "value": "{{section_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Cases with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/cases/{{project_id}}?limit=10&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "cases", "{{project_id}}"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Case by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/case/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "case", "{{case_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Test Case (Simple)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Simple API Test Case\",\n  \"template_id\": 1,\n  \"type_id\": 1,\n  \"priority_id\": 2,\n  \"expected_result\": \"API should return 200 status\",\n  \"preconditions\": \"API service is running\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/cases/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "cases", "{{section_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Test Case (With Steps)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Login Test with Steps\",\n  \"template_id\": 2,\n  \"type_id\": 1,\n  \"priority_id\": 1,\n  \"steps\": [\n    {\n      \"step\": \"Navigate to login page\",\n      \"expected\": \"Login form is displayed\"\n    },\n    {\n      \"step\": \"Enter valid credentials\",\n      \"expected\": \"Credentials are accepted\"\n    },\n    {\n      \"step\": \"Click login button\",\n      \"expected\": \"User is redirected to dashboard\"\n    }\n  ],\n  \"expected_result\": \"User successfully logs in\",\n  \"preconditions\": \"User account exists and is active\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/cases/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "cases", "{{section_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Test Case",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Test Case Title\",\n  \"template_id\": 1,\n  \"type_id\": 2,\n  \"priority_id\": 1,\n  \"expected_result\": \"Updated expected result\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/case/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "case", "{{case_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Test Results",
+      "item": [
+        {
+          "name": "Get Results for Case",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/results/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "results", "{{case_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Result - Passed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_id\": 1,\n  \"comment\": \"Test executed successfully via Postman\",\n  \"elapsed\": \"2m 15s\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/results/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "results", "{{case_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Result - Failed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_id\": 5,\n  \"comment\": \"Test failed - API returned 500 error\",\n  \"elapsed\": \"1m 30s\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/results/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "results", "{{case_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Result - Blocked",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_id\": 2,\n  \"comment\": \"Test blocked - dependency service is down\",\n  \"elapsed\": \"30s\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/results/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "results", "{{case_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Test Runs",
+      "item": [
+        {
+          "name": "Get Runs for Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/runs/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "runs", "{{project_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Run by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/run/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "run", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Test Run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"API Test Run\",\n  \"description\": \"Automated test run created via Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/runs/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "runs", "{{project_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Utility Endpoints",
+      "item": [
+        {
+          "name": "Get Available Statuses",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/statuses",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "statuses"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/types",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "types"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Priorities",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/priorities",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "priorities"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Templates",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/templates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "templates"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Legacy TestRail Compatibility",
+      "item": [
+        {
+          "name": "Legacy - Add Case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Legacy API Test Case\",\n  \"template_id\": 1,\n  \"type_id\": 1,\n  \"priority_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?section_id={{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [
+                {
+                  "key": "section_id",
+                  "value": "{{section_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Legacy - Add Result",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_id\": 1,\n  \"comment\": \"Executed via legacy API\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?case_id={{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [
+                {
+                  "key": "case_id",
+                  "value": "{{case_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Legacy - Get Case",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?case_id={{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [
+                {
+                  "key": "case_id",
+                  "value": "{{case_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Error Testing",
+      "item": [
+        {
+          "name": "Test 401 - No Auth",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/projects",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "projects"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test 404 - Nonexistent Case",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v2/case/999999",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "case", "999999"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test 400 - Invalid Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_id\": 999,\n  \"comment\": \"Invalid status test\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v2/results/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v2", "results", "{{case_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

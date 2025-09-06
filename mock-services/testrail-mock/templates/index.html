@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}TestRail Mock - Dashboard{% endblock %}
+
+{% block content %}
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Project Overview
+            </div>
+            <div class="card-body">
+                <h2>{{ project.name }}</h2>
+                <p>{{ project.description or "No description available" }}</p>
+                
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.total_cases }}</div>
+                        <div class="stat-label">Total Test Cases</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.overall_status_counts.get(1, 0) }}</div>
+                        <div class="stat-label">Passed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.overall_status_counts.get(5, 0) }}</div>
+                        <div class="stat-label">Failed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">{{ stats.overall_status_counts.get(3, 0) }}</div>
+                        <div class="stat-label">Untested</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                Recent Test Results
+            </div>
+            <div class="card-body">
+                {% if recent_results %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Test Case</th>
+                            <th>Status</th>
+                            <th>Comment</th>
+                            <th>Executed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in recent_results %}
+                        <tr>
+                            <td>
+                                <a href="/ui/case/{{ result.case.id }}">{{ result.case.title }}</a>
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ status_classes[result.status_id] }}">
+                                    {{ status_names[result.status_id] }}
+                                </span>
+                            </td>
+                            <td>{{ result.comment or "-" }}</td>
+                            <td>{{ result.created_on.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No test results yet. <a href="/ui/cases">Start testing!</a></p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                Test Runs
+            </div>
+            <div class="card-body">
+                {% if test_runs %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Run Name</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for run in test_runs %}
+                        <tr>
+                            <td>
+                                <a href="/ui/run/{{ run.id }}">{{ run.name }}</a>
+                            </td>
+                            <td>
+                                <span class="status-badge {% if run.is_completed %}status-passed{% else %}status-untested{% endif %}">
+                                    {{ "Completed" if run.is_completed else "In Progress" }}
+                                </span>
+                            </td>
+                            <td>{{ run.created_on.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="/ui/run/{{ run.id }}" class="btn btn-secondary">View</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <a href="/ui/runs/create" class="btn btn-success">Create New Run</a>
+                {% else %}
+                <p>No test runs created yet.</p>
+                <a href="/ui/runs/create" class="btn btn-success">Create First Run</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Test Sections</h3>
+        <ul>
+            {% for section in sections %}
+            <li>
+                <a href="/ui/section/{{ section.id }}">
+                    {{ section.name }}
+                    <small>({{ section_case_counts.get(section.id, 0) }} cases)</small>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/cases/create" class="btn btn-success" style="margin-bottom: 0.5rem;">Add Test Case</a></li>
+            <li><a href="/ui/sections/create" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Add Section</a></li>
+            <li><a href="/ui/runs/create" class="btn" style="margin-bottom: 0.5rem;">Create Test Run</a></li>
+        </ul>
+        
+        <h3>API Information</h3>
+        <p style="font-size: 0.9rem; color: #6c757d; margin-bottom: 1rem;">
+            This TestRail mock service provides REST API endpoints compatible with TestRail v2 API.
+        </p>
+        <ul>
+            <li><a href="/docs" target="_blank">API Documentation</a></li>
+            <li><a href="/redoc" target="_blank">ReDoc</a></li>
+            <li><a href="/health">Health Check</a></li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.main-content {
+    min-height: 600px;
+}
+
+.stat-card:nth-child(2) .stat-number {
+    color: #27ae60;
+}
+
+.stat-card:nth-child(3) .stat-number {
+    color: #e74c3c;
+}
+
+.stat-card:nth-child(4) .stat-number {
+    color: #95a5a6;
+}
+
+small {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ feature_name }} - TestRail Mock{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; margin: 2rem auto; text-align: center;">
+    <div class="card">
+        <div class="card-body" style="padding: 3rem;">
+            <div style="font-size: 4rem; color: #3498db; margin-bottom: 1rem;">
+                🚧
+            </div>
+            
+            <h2 style="color: #2c3e50; margin-bottom: 1rem;">{{ feature_name }}</h2>
+            
+            <p style="font-size: 1.1rem; color: #6c757d; margin-bottom: 2rem;">
+                {{ description }}
+            </p>
+            
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                <h4 style="color: #2c3e50; margin-bottom: 1rem;">Coming Soon!</h4>
+                <p style="color: #6c757d; margin-bottom: 0;">
+                    This feature is planned for a future release. In the meantime, you can manually create test cases 
+                    or use the API endpoints to programmatically add test cases to your project.
+                </p>
+            </div>
+            
+            <div>
+                <a href="{{ back_url }}" class="btn btn-success">Go Back</a>
+                <a href="/docs" class="btn btn-secondary">View API Docs</a>
+            </div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 2rem; font-size: 0.9rem; color: #6c757d;">
+        <p>
+            <strong>Suggestion:</strong> You can contribute to this mock service by implementing this feature! 
+            Check the GitHub repository for contribution guidelines.
+        </p>
+    </div>
+</div>
+
+<style>
+.container {
+    padding: 2rem;
+}
+
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn {
+    margin: 0 0.5rem;
+    padding: 0.75rem 1.5rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}Create Section - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Cases", "url": "/ui/cases"},
+    {"name": "Create Section", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Create New Section
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/ui/sections/create">
+                    <div class="form-group">
+                        <label class="form-label">Section Name *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Enter section name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Describe what this section contains (optional)"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Parent Section</label>
+                        <select name="parent_id" class="form-control">
+                            <option value="">None (Top Level Section)</option>
+                            {% for section in sections %}
+                            <option value="{{ section.id }}">{{ section.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <small style="color: #6c757d; font-size: 0.8rem;">
+                            Choose a parent section to create a nested structure
+                        </small>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <a href="/ui/cases" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Create Section</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>About Sections</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p>Sections help organize your test cases into logical groups.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Examples:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li>Authentication</li>
+                <li>User Management</li>
+                <li>API Tests</li>
+                <li>UI Components</li>
+                <li>Integration Tests</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Best Practices:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li>Use clear, descriptive names</li>
+                <li>Group related functionality</li>
+                <li>Consider nested sections for complex features</li>
+                <li>Keep section names concise</li>
+            </ul>
+        </div>
+        
+        <h3>Current Sections</h3>
+        <div style="font-size: 0.9rem;">
+            {% if sections %}
+            <ul style="list-style: none; padding-left: 0;">
+                {% for section in sections %}
+                <li style="margin-bottom: 0.5rem;">
+                    <a href="/ui/cases?section_id={{ section.id }}" style="color: #3498db; text-decoration: none;">
+                        {{ section.name }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color: #6c757d; font-size: 0.8rem;">No sections created yet.</p>
+            {% endif %}
+        </div>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/cases/create" class="btn btn-success" style="margin-bottom: 0.5rem;">Add Test Case</a></li>
+            <li><a href="/ui/cases" class="btn" style="margin-bottom: 0.5rem;">View All Cases</a></li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.btn {
+    margin-left: 0.5rem;
+}
+
+.btn:first-child {
+    margin-left: 0;
+}
+
+small {
+    display: block;
+    margin-top: 0.25rem;
+}
+</style>
+{% endblock %}

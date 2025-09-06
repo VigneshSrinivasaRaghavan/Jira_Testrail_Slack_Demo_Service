@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Test Run - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Runs", "url": "/ui/runs"},
+    {"name": run.name, "url": "/ui/run/" + run.id|string},
+    {"name": "Edit", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Edit Test Run: {{ run.name }}
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/ui/run/{{ run.id }}/edit">
+                    <div class="form-group">
+                        <label class="form-label">Run Name *</label>
+                        <input type="text" name="name" class="form-control" required value="{{ run.name }}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="4">{{ run.description or "" }}</textarea>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <a href="/ui/run/{{ run.id }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                Run Information
+            </div>
+            <div class="card-body">
+                <div style="font-size: 0.9rem; color: #6c757d;">
+                    <p><strong>Created:</strong> {{ run.created_on.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Run ID:</strong> {{ run.id }}</p>
+                    <p><strong>Project:</strong> {{ run.project.name }}</p>
+                    <p><strong>Status:</strong> {{ "Completed" if run.is_completed else "In Progress" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Editing Test Run</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p>Make changes to this test run. The run's test cases and results will remain unchanged.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Tips:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li>Keep names descriptive and unique</li>
+                <li>Update description to reflect scope changes</li>
+                <li>Consider impact on team members</li>
+                <li>Changes are saved immediately</li>
+            </ul>
+        </div>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/run/{{ run.id }}" class="btn btn-secondary" style="margin-bottom: 0.5rem;">View Test Run</a></li>
+            <li><a href="/ui/run/{{ run.id }}/add-cases" class="btn" style="margin-bottom: 0.5rem;">Add Test Cases</a></li>
+            {% if not run.is_completed %}
+            <li><a href="/ui/run/{{ run.id }}/complete" class="btn btn-success" style="margin-bottom: 0.5rem;">Mark Complete</a></li>
+            {% endif %}
+        </ul>
+        
+        <h3>Run Status</h3>
+        <div style="font-size: 0.9rem;">
+            <p>
+                <span class="status-badge {% if run.is_completed %}status-passed{% else %}status-untested{% endif %}">
+                    {{ "Completed" if run.is_completed else "In Progress" }}
+                </span>
+            </p>
+            {% if run.is_completed %}
+            <p style="color: #6c757d; font-size: 0.8rem;">
+                This run is marked as complete. You can still edit the name and description.
+            </p>
+            {% else %}
+            <p style="color: #6c757d; font-size: 0.8rem;">
+                This run is still in progress. You can mark it complete when all testing is finished.
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.btn {
+    margin-left: 0.5rem;
+}
+
+.btn:first-child {
+    margin-left: 0;
+}
+
+.status-badge {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+}
+</style>
+{% endblock %}

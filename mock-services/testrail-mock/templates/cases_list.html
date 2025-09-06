@@ -1,0 +1,245 @@
+{% extends "base.html" %}
+
+{% block title %}Test Cases - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Cases", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Test Cases
+                <div style="float: right;">
+                    <a href="/ui/cases/create" class="btn btn-success">Add Test Case</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Filters -->
+                <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+                    <form method="GET" style="display: flex; gap: 1rem; align-items: end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Section</label>
+                            <select name="section_id" class="form-control">
+                                <option value="">All Sections</option>
+                                {% for section in sections %}
+                                <option value="{{ section.id }}" {% if current_section_id == section.id %}selected{% endif %}>
+                                    {{ section.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Type</label>
+                            <select name="type_id" class="form-control">
+                                <option value="">All Types</option>
+                                {% for type_id, type_name in type_names.items() %}
+                                <option value="{{ type_id }}" {% if current_type_id == type_id %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Priority</label>
+                            <select name="priority_id" class="form-control">
+                                <option value="">All Priorities</option>
+                                {% for priority_id, priority_name in priority_names.items() %}
+                                <option value="{{ priority_id }}" {% if current_priority_id == priority_id %}selected{% endif %}>
+                                    {{ priority_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <button type="submit" class="btn">Filter</button>
+                            <a href="/ui/cases" class="btn btn-secondary">Clear</a>
+                        </div>
+                    </form>
+                </div>
+                
+                {% if cases %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Section</th>
+                            <th>Type</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for case in cases %}
+                        <tr>
+                            <td>{{ case.id }}</td>
+                            <td>
+                                <a href="/ui/case/{{ case.id }}">{{ case.title }}</a>
+                            </td>
+                            <td>{{ case.section.name }}</td>
+                            <td>{{ type_names[case.type_id] }}</td>
+                            <td>{{ priority_names[case.priority_id] }}</td>
+                            <td>
+                                {% if case_statuses.get(case.id) %}
+                                <span class="status-badge status-{{ status_classes[case_statuses[case.id].status_id] }}">
+                                    {{ status_names[case_statuses[case.id].status_id] }}
+                                </span>
+                                {% else %}
+                                <span class="status-badge status-untested">Untested</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ case.updated_on.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                <a href="/ui/case/{{ case.id }}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">View</a>
+                                <a href="/ui/case/{{ case.id }}/execute" class="btn btn-success" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Execute</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                <div style="margin-top: 1.5rem; text-align: center;">
+                    {% if current_page > 1 %}
+                    <a href="?page={{ current_page - 1 }}&{{ query_params }}" class="btn btn-secondary">Previous</a>
+                    {% endif %}
+                    
+                    <span style="margin: 0 1rem;">
+                        Page {{ current_page }} of {{ total_pages }} ({{ total_cases }} total)
+                    </span>
+                    
+                    {% if current_page < total_pages %}
+                    <a href="?page={{ current_page + 1 }}&{{ query_params }}" class="btn btn-secondary">Next</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <p>No test cases found.</p>
+                <a href="/ui/cases/create" class="btn btn-success">Create First Test Case</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Test Sections</h3>
+        <ul>
+            {% for section in sections %}
+            <li>
+                <a href="/ui/cases?section_id={{ section.id }}">
+                    {{ section.name }}
+                    <small>({{ section_case_counts.get(section.id, 0) }} cases)</small>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/cases/create" class="btn btn-success" style="margin-bottom: 0.5rem;">Add Test Case</a></li>
+            <li><a href="/ui/sections/create" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Add Section</a></li>
+            <li><a href="/ui/cases/import" class="btn" style="margin-bottom: 0.5rem;">Import Cases</a></li>
+        </ul>
+        
+        <h3>Statistics</h3>
+        <div style="font-size: 0.9rem;">
+            <div style="margin-bottom: 0.5rem;">
+                <strong>Total Cases:</strong> {{ total_cases }}
+            </div>
+            {% for status_id, status_name in status_names.items() %}
+            <div style="margin-bottom: 0.5rem;">
+                <span class="status-badge status-{{ status_classes[status_id] }}" style="font-size: 0.7rem;">
+                    {{ status_name }}
+                </span>
+                <span style="margin-left: 0.5rem;">{{ status_counts.get(status_id, 0) }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <h3>Bulk Actions</h3>
+        <div style="font-size: 0.9rem;">
+            <p>Select multiple test cases to:</p>
+            <ul style="font-size: 0.8rem; color: #6c757d;">
+                <li>Execute in batch</li>
+                <li>Move to different section</li>
+                <li>Update priority/type</li>
+                <li>Add to test run</li>
+            </ul>
+            <p style="font-size: 0.8rem; color: #6c757d; font-style: italic;">
+                (Feature coming soon)
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+.main-content {
+    min-height: 600px;
+}
+
+small {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-left: 0.5rem;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table td:last-child {
+    white-space: nowrap;
+}
+
+.form-group {
+    min-width: 150px;
+}
+
+.form-group:last-child {
+    min-width: auto;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+}
+</style>
+
+<script>
+// Enhanced filtering with URL state management
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const selects = form.querySelectorAll('select');
+    
+    // Auto-submit form when filters change
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            form.submit();
+        });
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + N = New test case
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            window.location.href = '/ui/cases/create';
+        }
+        
+        // Ctrl/Cmd + F = Focus on search (if we had one)
+        if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+            e.preventDefault();
+            // Focus on first filter
+            selects[0].focus();
+        }
+    });
+});
+</script>
+{% endblock %}

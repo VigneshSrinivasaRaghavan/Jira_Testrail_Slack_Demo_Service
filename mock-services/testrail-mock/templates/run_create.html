@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Create Test Run - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Runs", "url": "/ui/runs"},
+    {"name": "Create Test Run", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Create New Test Run
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/ui/runs/create">
+                    <div class="form-group">
+                        <label class="form-label">Run Name *</label>
+                        <input type="text" name="name" class="form-control" required placeholder="Enter test run name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="4" placeholder="Describe the purpose and scope of this test run"></textarea>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <a href="/ui/runs" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Create Test Run</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                What happens next?
+            </div>
+            <div class="card-body">
+                <div style="font-size: 0.9rem; color: #6c757d;">
+                    <p>After creating the test run, you'll be able to:</p>
+                    <ul>
+                        <li>Add test cases to the run</li>
+                        <li>Assign tests to team members</li>
+                        <li>Track execution progress</li>
+                        <li>Generate reports</li>
+                    </ul>
+                    <p style="margin-top: 1rem;">
+                        <strong>Note:</strong> Test cases can be added to the run after creation through the run detail page.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>About Test Runs</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p>Test runs group multiple test cases for organized execution and tracking.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Common Run Types:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li>Sprint Testing</li>
+                <li>Regression Testing</li>
+                <li>Release Validation</li>
+                <li>Smoke Testing</li>
+                <li>User Acceptance Testing</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Best Practices:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li>Use descriptive names with version/date</li>
+                <li>Include clear scope in description</li>
+                <li>Group related test cases</li>
+                <li>Set realistic timelines</li>
+            </ul>
+        </div>
+        
+        <h3>Available Sections</h3>
+        <div style="font-size: 0.9rem;">
+            <p style="color: #6c757d; font-size: 0.8rem; margin-bottom: 1rem;">
+                Test cases from these sections can be added to your run:
+            </p>
+            {% if sections %}
+            <ul style="list-style: none; padding-left: 0;">
+                {% for section in sections %}
+                <li style="margin-bottom: 0.5rem;">
+                    <span style="color: #3498db;">{{ section.name }}</span>
+                    <small style="color: #6c757d; margin-left: 0.5rem;">
+                        ({{ section.description or "No description" }})
+                    </small>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="color: #6c757d; font-size: 0.8rem;">No sections available.</p>
+            {% endif %}
+        </div>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/runs" class="btn btn-secondary" style="margin-bottom: 0.5rem;">View All Runs</a></li>
+            <li><a href="/ui/cases" class="btn" style="margin-bottom: 0.5rem;">Browse Test Cases</a></li>
+            <li><a href="/ui" class="btn" style="margin-bottom: 0.5rem;">Dashboard</a></li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.btn {
+    margin-left: 0.5rem;
+}
+
+.btn:first-child {
+    margin-left: 0;
+}
+
+small {
+    display: block;
+    font-size: 0.7rem;
+}
+</style>
+{% endblock %}

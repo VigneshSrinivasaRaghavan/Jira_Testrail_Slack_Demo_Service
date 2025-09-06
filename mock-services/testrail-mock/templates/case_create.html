@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block title %}Create Test Case - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Cases", "url": "/ui/cases"},
+    {"name": "Create Test Case", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Create New Test Case
+            </div>
+            <div class="card-body">
+                <form method="POST" action="/ui/cases/create">
+                    <div class="form-group">
+                        <label class="form-label">Section *</label>
+                        <select name="section_id" class="form-control" required>
+                            <option value="">Select a section...</option>
+                            {% for section in sections %}
+                            <option value="{{ section.id }}">{{ section.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Title *</label>
+                        <input type="text" name="title" class="form-control" required placeholder="Enter test case title">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Template</label>
+                            <select name="template_id" class="form-control">
+                                {% for template in templates %}
+                                <option value="{{ template.id }}" {% if template.is_default %}selected{% endif %}>
+                                    {{ template.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Type</label>
+                            <select name="type_id" class="form-control">
+                                {% for type_id, type_name in type_names.items() %}
+                                <option value="{{ type_id }}" {% if type_id == 1 %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Priority</label>
+                            <select name="priority_id" class="form-control">
+                                {% for priority_id, priority_name in priority_names.items() %}
+                                <option value="{{ priority_id }}" {% if priority_id == 2 %}selected{% endif %}>
+                                    {{ priority_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Preconditions</label>
+                        <textarea name="preconditions" class="form-control" rows="3" placeholder="Enter any preconditions for this test case"></textarea>
+                    </div>
+                    
+                    <!-- Test Steps Section (shown only for Test Case (Steps) template) -->
+                    <div id="steps-section" class="form-group" style="display: none;">
+                        <label class="form-label">Test Steps</label>
+                        <div id="steps-container">
+                            <!-- Steps will be added dynamically -->
+                        </div>
+                        <button type="button" id="add-step-btn" class="btn btn-secondary" style="margin-top: 0.5rem;">
+                            + Add Step
+                        </button>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Expected Result</label>
+                        <textarea name="expected_result" class="form-control" rows="4" placeholder="Describe the expected outcome of this test case"></textarea>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <a href="/ui/cases" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Create Test Case</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Creating Test Cases</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p><strong>Required Fields:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li>Section - Where to organize this test case</li>
+                <li>Title - Clear, descriptive name</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Best Practices:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li>Use clear, action-oriented titles</li>
+                <li>Include preconditions when needed</li>
+                <li>Describe expected results clearly</li>
+                <li>Choose appropriate priority levels</li>
+            </ul>
+            
+            <p style="margin-top: 1rem;"><strong>Test Types:</strong></p>
+            <ul style="font-size: 0.8rem;">
+                <li><strong>Functional:</strong> Feature testing</li>
+                <li><strong>Regression:</strong> Bug prevention</li>
+                <li><strong>Smoke:</strong> Basic functionality</li>
+                <li><strong>Performance:</strong> Speed/load testing</li>
+                <li><strong>Security:</strong> Security validation</li>
+            </ul>
+        </div>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/sections/create" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Create Section</a></li>
+            <li><a href="/ui/cases" class="btn" style="margin-bottom: 0.5rem;">Back to Test Cases</a></li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.btn {
+    margin-left: 0.5rem;
+}
+
+.btn:first-child {
+    margin-left: 0;
+}
+
+.step-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    background: #f8f9fa;
+}
+
+.step-number {
+    font-weight: 600;
+    color: #3498db;
+    margin-bottom: 0.5rem;
+}
+
+.remove-step-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    height: fit-content;
+    align-self: start;
+}
+
+.remove-step-btn:hover {
+    background: #c82333;
+}
+</style>
+
+<script>
+let stepCounter = 0;
+
+// Show/hide steps section based on template selection
+function toggleStepsSection() {
+    const templateSelect = document.querySelector('select[name="template_id"]');
+    const stepsSection = document.getElementById('steps-section');
+    
+    if (templateSelect && stepsSection) {
+        const selectedOption = templateSelect.options[templateSelect.selectedIndex];
+        const templateName = selectedOption.text;
+        
+        if (templateName.includes('Steps')) {
+            stepsSection.style.display = 'block';
+            // Add initial step if none exist
+            if (stepCounter === 0) {
+                addStep();
+            }
+        } else {
+            stepsSection.style.display = 'none';
+            // Clear all steps
+            document.getElementById('steps-container').innerHTML = '';
+            stepCounter = 0;
+        }
+    }
+}
+
+// Add a new test step
+function addStep() {
+    stepCounter++;
+    const container = document.getElementById('steps-container');
+    
+    const stepDiv = document.createElement('div');
+    stepDiv.className = 'step-row';
+    stepDiv.id = `step-${stepCounter}`;
+    
+    stepDiv.innerHTML = `
+        <div>
+            <div class="step-number">Step ${stepCounter}</div>
+            <label class="form-label">Action</label>
+            <textarea name="steps[${stepCounter-1}][step]" class="form-control" rows="2" placeholder="Describe what to do in this step" required></textarea>
+        </div>
+        <div>
+            <div style="height: 1.5rem;"></div>
+            <label class="form-label">Expected Result</label>
+            <textarea name="steps[${stepCounter-1}][expected]" class="form-control" rows="2" placeholder="What should happen?" required></textarea>
+        </div>
+        <div>
+            <button type="button" class="remove-step-btn" onclick="removeStep(${stepCounter})">×</button>
+        </div>
+    `;
+    
+    container.appendChild(stepDiv);
+}
+
+// Remove a test step
+function removeStep(stepId) {
+    const stepElement = document.getElementById(`step-${stepId}`);
+    if (stepElement) {
+        stepElement.remove();
+        renumberSteps();
+    }
+}
+
+// Renumber steps after removal
+function renumberSteps() {
+    const steps = document.querySelectorAll('.step-row');
+    stepCounter = 0;
+    
+    steps.forEach((step, index) => {
+        stepCounter = index + 1;
+        step.id = `step-${stepCounter}`;
+        
+        // Update step number display
+        const stepNumber = step.querySelector('.step-number');
+        if (stepNumber) {
+            stepNumber.textContent = `Step ${stepCounter}`;
+        }
+        
+        // Update input names
+        const stepInput = step.querySelector('textarea[name*="[step]"]');
+        const expectedInput = step.querySelector('textarea[name*="[expected]"]');
+        const removeBtn = step.querySelector('.remove-step-btn');
+        
+        if (stepInput) stepInput.name = `steps[${index}][step]`;
+        if (expectedInput) expectedInput.name = `steps[${index}][expected]`;
+        if (removeBtn) removeBtn.setAttribute('onclick', `removeStep(${stepCounter})`);
+    });
+}
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const templateSelect = document.querySelector('select[name="template_id"]');
+    const addStepBtn = document.getElementById('add-step-btn');
+    
+    if (templateSelect) {
+        templateSelect.addEventListener('change', toggleStepsSection);
+        // Check initial state
+        toggleStepsSection();
+    }
+    
+    if (addStepBtn) {
+        addStepBtn.addEventListener('click', addStep);
+    }
+});
+</script>
+
+{% endblock %}

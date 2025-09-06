@@ -20,15 +20,6 @@ mock-services/
   docker-compose.yml
   .env.example
   README.md
-  shared/
-    seed/
-      sample_issues.json
-      sample_testcases.json
-      sample_messages.json
-    schemas/
-      jira.py
-      testrail.py
-      slack.py
   jira-mock/
     app.py
     models.py
@@ -53,6 +44,11 @@ mock-services/
     Dockerfile
     requirements.txt
     tests/
+    shared/
+      seed/
+        sample_testcases.json
+    postman/
+      Mock-TestRail.postman_collection.json
   slack-mock/
     app.py
     models.py
@@ -65,10 +61,6 @@ mock-services/
     Dockerfile
     requirements.txt
     tests/
-  postman/
-    Mock-Jira.postman_collection.json
-    Mock-TestRail.postman_collection.json
-    Mock-Slack.postman_collection.json
 ```
 
 ---
@@ -144,7 +136,7 @@ mock-services/
 
 * Swagger docs at `/docs` & `/redoc`
 * CORS enabled
-* Seed data from `shared/seed/*.json`
+* Seed data from service-specific seed directories
 * Log every request
 * Pydantic validation
 * Pagination (`?startAt=0&maxResults=50` for Jira, `?limit=50` for Slack/TestRail)

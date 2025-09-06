@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Copy Test Case - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Cases", "url": "/ui/cases"},
+    {"name": original_case.title, "url": "/ui/case/" + original_case.id|string},
+    {"name": "Copy", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Copy Test Case: {{ original_case.title }}
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info" style="background: #e3f2fd; border: 1px solid #90caf9; color: #1565c0; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                    <strong>Note:</strong> This will create a new test case based on the original. You can modify any fields before creating the copy.
+                </div>
+                
+                <form method="POST" action="/ui/cases/create">
+                    <div class="form-group">
+                        <label class="form-label">Section *</label>
+                        <select name="section_id" class="form-control" required>
+                            {% for section in sections %}
+                            <option value="{{ section.id }}" {% if section.id == original_case.section_id %}selected{% endif %}>
+                                {{ section.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Title *</label>
+                        <input type="text" name="title" class="form-control" required value="Copy of {{ original_case.title }}">
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label">Template</label>
+                            <select name="template_id" class="form-control">
+                                {% for template in templates %}
+                                <option value="{{ template.id }}" {% if template.id == original_case.template_id %}selected{% endif %}>
+                                    {{ template.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Type</label>
+                            <select name="type_id" class="form-control">
+                                {% for type_id, type_name in type_names.items() %}
+                                <option value="{{ type_id }}" {% if type_id == original_case.type_id %}selected{% endif %}>
+                                    {{ type_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Priority</label>
+                            <select name="priority_id" class="form-control">
+                                {% for priority_id, priority_name in priority_names.items() %}
+                                <option value="{{ priority_id }}" {% if priority_id == original_case.priority_id %}selected{% endif %}>
+                                    {{ priority_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Preconditions</label>
+                        <textarea name="preconditions" class="form-control" rows="3">{{ original_case.preconditions or "" }}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Expected Result</label>
+                        <textarea name="expected_result" class="form-control" rows="4">{{ original_case.expected_result or "" }}</textarea>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <a href="/ui/case/{{ original_case.id }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Create Copy</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Original Test Case</h3>
+        <div style="font-size: 0.9rem;">
+            <p><strong>ID:</strong> {{ original_case.id }}</p>
+            <p><strong>Section:</strong> {{ original_case.section.name }}</p>
+            <p><strong>Type:</strong> {{ type_names[original_case.type_id] }}</p>
+            <p><strong>Priority:</strong> {{ priority_names[original_case.priority_id] }}</p>
+            <p><strong>Created:</strong> {{ original_case.created_on.strftime('%Y-%m-%d') }}</p>
+        </div>
+        
+        <h3>Copying Test Cases</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p>When you copy a test case:</p>
+            <ul style="font-size: 0.8rem;">
+                <li>All fields are pre-filled from the original</li>
+                <li>Title is prefixed with "Copy of"</li>
+                <li>You can modify any field before creating</li>
+                <li>The new case will have a new ID</li>
+                <li>Execution history is not copied</li>
+            </ul>
+        </div>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/case/{{ original_case.id }}" class="btn btn-secondary" style="margin-bottom: 0.5rem;">View Original</a></li>
+            <li><a href="/ui/case/{{ original_case.id }}/edit" class="btn" style="margin-bottom: 0.5rem;">Edit Original</a></li>
+            <li><a href="/ui/cases" class="btn" style="margin-bottom: 0.5rem;">All Test Cases</a></li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+}
+
+.btn {
+    margin-left: 0.5rem;
+}
+
+.btn:first-child {
+    margin-left: 0;
+}
+
+.alert-info {
+    background: #e3f2fd;
+    border: 1px solid #90caf9;
+    color: #1565c0;
+}
+</style>
+{% endblock %}

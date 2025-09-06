@@ -7,6 +7,31 @@ services:
     volumes:
       - ./mock-services/jira-mock:/app
       - jira_db:/app/jira.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  testrail-mock:
+    build: ./mock-services/testrail-mock
+    ports:
+      - "4002:4002"
+    volumes:
+      - ./mock-services/testrail-mock:/app
+      - testrail_db:/app/data
+    environment:
+      - MOCK_AUTH_REQUIRED=true
+      - ENABLE_RATE_LIMIT=false
+      - TESTRAIL_PROJECT_ID=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      - jira-mock
 
 volumes:
   jira_db:
+  testrail_db:

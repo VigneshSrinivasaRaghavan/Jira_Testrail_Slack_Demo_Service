@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Test Runs - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Runs", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Test Runs
+                <div style="float: right;">
+                    <a href="/ui/runs/create" class="btn btn-success">Create Test Run</a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if test_runs %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for run in test_runs %}
+                        <tr>
+                            <td>{{ run.id }}</td>
+                            <td>
+                                <a href="/ui/run/{{ run.id }}">{{ run.name }}</a>
+                            </td>
+                            <td>{{ run.description or "-" }}</td>
+                            <td>
+                                <span class="status-badge {% if run.is_completed %}status-passed{% else %}status-untested{% endif %}">
+                                    {{ "Completed" if run.is_completed else "In Progress" }}
+                                </span>
+                            </td>
+                            <td>{{ run.created_on.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="/ui/run/{{ run.id }}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">View</a>
+                                {% if not run.is_completed %}
+                                <a href="/ui/run/{{ run.id }}/execute" class="btn btn-success" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Execute</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No test runs created yet.</p>
+                <a href="/ui/runs/create" class="btn btn-success">Create First Test Run</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/runs/create" class="btn btn-success" style="margin-bottom: 0.5rem;">Create Test Run</a></li>
+            <li><a href="/ui/cases" class="btn btn-secondary" style="margin-bottom: 0.5rem;">View Test Cases</a></li>
+            <li><a href="/ui" class="btn" style="margin-bottom: 0.5rem;">Dashboard</a></li>
+        </ul>
+        
+        <h3>Test Run Statistics</h3>
+        <div style="font-size: 0.9rem;">
+            <div style="margin-bottom: 0.5rem;">
+                <strong>Total Runs:</strong> {{ test_runs|length }}
+            </div>
+            <div style="margin-bottom: 0.5rem;">
+                <strong>Completed:</strong> {{ test_runs|selectattr('is_completed')|list|length }}
+            </div>
+            <div style="margin-bottom: 0.5rem;">
+                <strong>In Progress:</strong> {{ (test_runs|length) - (test_runs|selectattr('is_completed')|list|length) }}
+            </div>
+        </div>
+        
+        <h3>About Test Runs</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p>Test runs group multiple test cases for organized execution and reporting.</p>
+            <ul style="font-size: 0.8rem;">
+                <li>Create runs for specific features or releases</li>
+                <li>Track execution progress</li>
+                <li>Generate comprehensive reports</li>
+                <li>Manage test assignments</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+.main-content {
+    min-height: 600px;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.table td:last-child {
+    white-space: nowrap;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}{{ case.title }} - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Cases", "url": "/ui/cases"},
+    {"name": case.title, "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Test Case Details
+                <div style="float: right;">
+                    <a href="/ui/case/{{ case.id }}/edit" class="btn btn-secondary">Edit</a>
+                    <a href="/ui/case/{{ case.id }}/execute" class="btn btn-success">Execute Test</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <h2>{{ case.title }}</h2>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1.5rem 0;">
+                    <div>
+                        <strong>Section:</strong> {{ case.section.name }}<br>
+                        <strong>Type:</strong> {{ type_names[case.type_id] }}<br>
+                        <strong>Priority:</strong> {{ priority_names[case.priority_id] }}
+                    </div>
+                    <div>
+                        <strong>Template:</strong> {{ case.template.name }}<br>
+                        <strong>Created:</strong> {{ case.created_on.strftime('%Y-%m-%d %H:%M') }}<br>
+                        <strong>Updated:</strong> {{ case.updated_on.strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                </div>
+                
+                {% if case.preconditions %}
+                <div style="margin: 1.5rem 0;">
+                    <h4>Preconditions</h4>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                        {{ case.preconditions }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if case.steps %}
+                <div style="margin: 1.5rem 0;">
+                    <h4>Test Steps</h4>
+                    <div style="margin-top: 1rem;">
+                        {% for step in case.steps %}
+                        <div style="border: 1px solid #e9ecef; border-radius: 4px; margin-bottom: 1rem; overflow: hidden;">
+                            <div style="background: #f8f9fa; padding: 0.75rem; border-bottom: 1px solid #e9ecef;">
+                                <strong>Step {{ loop.index }}:</strong> {{ step.step }}
+                            </div>
+                            <div style="padding: 0.75rem;">
+                                <strong>Expected Result:</strong> {{ step.expected }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% if case.expected_result %}
+                <div style="margin: 1.5rem 0;">
+                    <h4>Expected Result</h4>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
+                        {{ case.expected_result }}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                Execution History
+                <div style="float: right;">
+                    <a href="/ui/case/{{ case.id }}/execute" class="btn btn-success">Add Result</a>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if results %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Status</th>
+                            <th>Comment</th>
+                            <th>Elapsed</th>
+                            <th>Executed By</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for result in results %}
+                        <tr>
+                            <td>
+                                <span class="status-badge status-{{ status_classes[result.status_id] }}">
+                                    {{ status_names[result.status_id] }}
+                                </span>
+                            </td>
+                            <td>{{ result.comment or "-" }}</td>
+                            <td>{{ result.elapsed or "-" }}</td>
+                            <td>{{ result.created_by }}</td>
+                            <td>{{ result.created_on.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p>No execution history yet.</p>
+                <a href="/ui/case/{{ case.id }}/execute" class="btn btn-success">Execute This Test</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Test Case Actions</h3>
+        <ul>
+            <li><a href="/ui/case/{{ case.id }}/execute" class="btn btn-success" style="margin-bottom: 0.5rem;">Execute Test</a></li>
+            <li><a href="/ui/case/{{ case.id }}/edit" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Edit Case</a></li>
+            <li><a href="/ui/case/{{ case.id }}/copy" class="btn" style="margin-bottom: 0.5rem;">Copy Case</a></li>
+        </ul>
+        
+        <h3>Section: {{ case.section.name }}</h3>
+        <ul>
+            {% for sibling in section_cases %}
+            <li>
+                <a href="/ui/case/{{ sibling.id }}" {% if sibling.id == case.id %}style="font-weight: bold;"{% endif %}>
+                    {{ sibling.title }}
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+        
+        <h3>Test Information</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p><strong>ID:</strong> {{ case.id }}</p>
+            <p><strong>Section ID:</strong> {{ case.section_id }}</p>
+            <p><strong>Template ID:</strong> {{ case.template_id }}</p>
+            <p><strong>Type ID:</strong> {{ case.type_id }}</p>
+            <p><strong>Priority ID:</strong> {{ case.priority_id }}</p>
+        </div>
+        
+        <h3>Latest Status</h3>
+        {% if latest_result %}
+        <div style="padding: 1rem; background: #f8f9fa; border-radius: 4px;">
+            <span class="status-badge status-{{ status_classes[latest_result.status_id] }}">
+                {{ status_names[latest_result.status_id] }}
+            </span>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                {{ latest_result.created_on.strftime('%Y-%m-%d %H:%M') }}
+            </p>
+            {% if latest_result.comment %}
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+                "{{ latest_result.comment }}"
+            </p>
+            {% endif %}
+        </div>
+        {% else %}
+        <p style="font-size: 0.9rem; color: #6c757d;">Not yet executed</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Execute Modal -->
+<div id="executeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px;">
+        <h3>Execute Test Case</h3>
+        <form id="executeForm" method="POST" action="/ui/case/{{ case.id }}/execute">
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status_id" class="form-control" required>
+                    <option value="">Select status...</option>
+                    <option value="1">Passed</option>
+                    <option value="5">Failed</option>
+                    <option value="2">Blocked</option>
+                    <option value="4">Retest</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Comment</label>
+                <textarea name="comment" class="form-control" rows="3" placeholder="Add execution notes..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Elapsed Time</label>
+                <input type="text" name="elapsed" class="form-control" placeholder="e.g., 2m 30s">
+            </div>
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button type="button" onclick="closeExecuteModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-success">Save Result</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openExecuteModal() {
+    document.getElementById('executeModal').style.display = 'block';
+}
+
+function closeExecuteModal() {
+    document.getElementById('executeModal').style.display = 'none';
+}
+
+// Open modal when execute buttons are clicked
+document.addEventListener('DOMContentLoaded', function() {
+    const executeButtons = document.querySelectorAll('a[href*="/execute"]');
+    executeButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            openExecuteModal();
+        });
+    });
+    
+    // Close modal when clicking outside
+    document.getElementById('executeModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeExecuteModal();
+        }
+    });
+});
+</script>
+
+<style>
+.main-content {
+    min-height: 600px;
+}
+
+.status-badge {
+    font-size: 0.85rem;
+}
+
+h4 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+}
+
+.card-header div {
+    display: inline-block;
+}
+
+.card-header .btn {
+    margin-left: 0.5rem;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Execute Test Case - TestRail Mock{% endblock %}
+
+{% block content %}
+{% set breadcrumb = [
+    {"name": "Dashboard", "url": "/ui"},
+    {"name": "Test Cases", "url": "/ui/cases"},
+    {"name": case.title, "url": "/ui/case/" + case.id|string},
+    {"name": "Execute", "url": ""}
+] %}
+
+<div class="two-column">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header">
+                Execute Test Case: {{ case.title }}
+            </div>
+            <div class="card-body">
+                <!-- Test Case Information -->
+                <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Test Case Details</h4>
+                    <div style="font-size: 0.9rem;">
+                        <p><strong>ID:</strong> {{ case.id }}</p>
+                        <p><strong>Section:</strong> {{ case.section.name }}</p>
+                        <p><strong>Priority:</strong> {{ priority_names[case.priority_id] }}</p>
+                        
+                        {% if case.preconditions %}
+                        <p style="margin-top: 0.5rem;"><strong>Preconditions:</strong></p>
+                        <p style="color: #6c757d;">{{ case.preconditions }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Test Steps -->
+                {% if case.steps %}
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">Test Steps</h4>
+                    <div style="border: 1px solid #e9ecef; border-radius: 4px;">
+                        {% for step in case.steps %}
+                        <div style="border-bottom: 1px solid #e9ecef; padding: 1rem;">
+                            <div style="display: flex; gap: 1rem;">
+                                <div style="font-weight: 600; color: #3498db; min-width: 60px;">
+                                    Step {{ loop.index }}
+                                </div>
+                                <div style="flex: 1;">
+                                    <p style="margin-bottom: 0.5rem;"><strong>Action:</strong> {{ step.step }}</p>
+                                    <p style="color: #6c757d; margin-bottom: 0;"><strong>Expected:</strong> {{ step.expected }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Expected Result -->
+                {% if case.expected_result %}
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 0.5rem;">Expected Result</h4>
+                    <div style="background: #e8f5e8; padding: 1rem; border-radius: 4px; border-left: 4px solid #28a745;">
+                        {{ case.expected_result }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Execution Form -->
+                <form method="POST" action="/ui/case/{{ case.id }}/execute">
+                    <div class="form-group">
+                        <label class="form-label">Test Result *</label>
+                        <select name="status_id" class="form-control" required>
+                            <option value="">Select result...</option>
+                            {% for status_id, status_name in status_names.items() %}
+                            {% if status_id != 3 %}  <!-- Skip "Untested" for execution results -->
+                            <option value="{{ status_id }}">{{ status_name }}</option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Comments</label>
+                        <textarea name="comment" class="form-control" rows="4" placeholder="Add any notes about the test execution..."></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Time Elapsed</label>
+                        <input type="text" name="elapsed" class="form-control" placeholder="e.g., 5m, 1h 30m, 2 hours">
+                        <small style="color: #6c757d;">Optional: How long did this test take to execute?</small>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; text-align: right;">
+                        <a href="/ui/case/{{ case.id }}" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-success">Save Result</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="sidebar">
+        <h3>Test Execution</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <p>Execute this test case and record the results. Follow the test steps carefully and compare actual results with expected outcomes.</p>
+            
+            <p style="margin-top: 1rem;"><strong>Result Options:</strong></p>
+            <ul style="font-size: 0.8rem; list-style: none; padding-left: 0;">
+                <li style="margin-bottom: 0.25rem;">
+                    <span class="status-badge status-passed">Passed</span> - Test executed successfully
+                </li>
+                <li style="margin-bottom: 0.25rem;">
+                    <span class="status-badge status-failed">Failed</span> - Test did not meet expectations
+                </li>
+                <li style="margin-bottom: 0.25rem;">
+                    <span class="status-badge status-blocked">Blocked</span> - Cannot execute due to dependencies
+                </li>
+                <li style="margin-bottom: 0.25rem;">
+                    <span class="status-badge status-retest">Retest</span> - Needs to be tested again
+                </li>
+            </ul>
+        </div>
+        
+        <h3>Execution Tips</h3>
+        <div style="font-size: 0.9rem; color: #6c757d;">
+            <ul style="font-size: 0.8rem;">
+                <li>Follow each step in order</li>
+                <li>Document any deviations in comments</li>
+                <li>Include screenshots if helpful</li>
+                <li>Record actual time taken</li>
+                <li>Be specific about failure reasons</li>
+            </ul>
+        </div>
+        
+        <h3>Quick Actions</h3>
+        <ul>
+            <li><a href="/ui/case/{{ case.id }}" class="btn btn-secondary" style="margin-bottom: 0.5rem;">View Test Case</a></li>
+            <li><a href="/ui/case/{{ case.id }}/edit" class="btn" style="margin-bottom: 0.5rem;">Edit Test Case</a></li>
+            <li><a href="/ui/cases" class="btn" style="margin-bottom: 0.5rem;">All Test Cases</a></li>
+        </ul>
+    </div>
+</div>
+
+<style>
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.9rem;
+}
+
+.form-control:focus {
+    border-color: #3498db;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    outline: none;
+}
+
+.btn {
+    margin-left: 0.5rem;
+}
+
+.btn:first-child {
+    margin-left: 0;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 3px;
+    font-weight: 600;
+    display: inline-block;
+    min-width: 60px;
+    text-align: center;
+}
+
+select.form-control {
+    background-color: white;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+</style>
+{% endblock %}
