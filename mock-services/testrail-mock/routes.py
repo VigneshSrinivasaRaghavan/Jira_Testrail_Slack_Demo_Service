@@ -4,7 +4,7 @@ Clean REST API with TestRail compatibility
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
@@ -176,8 +176,8 @@ def bulk_delete_cases(request: BulkDeleteRequest, db: Session = Depends(get_data
                 continue
             
             # Delete associated results and run entries
-            results_deleted = db.query(TestResult).filter(TestResult.case_id == case_id).delete()
-            entries_deleted = db.query(RunEntry).filter(RunEntry.case_id == case_id).delete()
+            db.query(TestResult).filter(TestResult.case_id == case_id).delete()
+            db.query(RunEntry).filter(RunEntry.case_id == case_id).delete()
             
             # Delete the test case
             db.delete(db_case)
