@@ -67,15 +67,26 @@ def get_status_classes():
     }
 
 def get_latest_case_statuses(db: Session, case_ids: List[int]):
-    """Get latest test result status for each case"""
+    """Get latest test result status for each case - ROBUST VERSION"""
     latest_results = {}
-    for case_id in case_ids:
-        result = (db.query(TestResult)
-                 .filter(TestResult.case_id == case_id)
-                 .order_by(desc(TestResult.created_on))
-                 .first())
-        if result:
-            latest_results[case_id] = result
+    if not case_ids:
+        return latest_results
+        
+    try:
+        for case_id in case_ids:
+            try:
+                result = (db.query(TestResult)
+                         .filter(TestResult.case_id == case_id)
+                         .order_by(desc(TestResult.created_on))
+                         .first())
+                if result:
+                    latest_results[case_id] = result
+            except Exception as e:
+                print(f"Error getting status for case {case_id}: {e}")
+                continue
+    except Exception as e:
+        print(f"Error in get_latest_case_statuses: {e}")
+        
     return latest_results
 
 # UI Routes
@@ -141,94 +152,136 @@ def cases_list(
     limit: int = Query(25, le=100),
     db: Session = Depends(get_database)
 ):
-    """Test cases list with filtering"""
-    # Convert string parameters to integers, handling empty strings
-    section_id_int = None
-    type_id_int = None
-    priority_id_int = None
-    
+    """Test cases list with filtering - ROBUST VERSION"""
     try:
-        if section_id and section_id.strip():
-            section_id_int = int(section_id)
-    except (ValueError, AttributeError):
+        # Convert string parameters to integers, handling empty strings
         section_id_int = None
-        
-    try:
-        if type_id and type_id.strip():
-            type_id_int = int(type_id)
-    except (ValueError, AttributeError):
         type_id_int = None
-        
-    try:
-        if priority_id and priority_id.strip():
-            priority_id_int = int(priority_id)
-    except (ValueError, AttributeError):
         priority_id_int = None
-    
-    # Build query
-    query = db.query(TestCase).join(Section).filter(Section.project_id == 1)
-    
-    if section_id_int:
-        query = query.filter(TestCase.section_id == section_id_int)
-    if type_id_int:
-        query = query.filter(TestCase.type_id == type_id_int)
-    if priority_id_int:
-        query = query.filter(TestCase.priority_id == priority_id_int)
-    
-    # Get total count
-    total_cases = query.count()
-    total_pages = (total_cases + limit - 1) // limit
-    
-    # Get paginated results
-    offset = (page - 1) * limit
-    cases = query.offset(offset).limit(limit).all()
-    
-    # Get sections and case counts
-    sections = db.query(Section).filter(Section.project_id == 1).all()
-    section_case_counts = {}
-    for section in sections:
-        count = db.query(TestCase).filter(TestCase.section_id == section.id).count()
-        section_case_counts[section.id] = count
-    
-    # Get latest status for each case
-    case_ids = [case.id for case in cases]
-    case_statuses = get_latest_case_statuses(db, case_ids)
-    
-    # Get status counts for sidebar
-    status_counts = {status_id: 0 for status_id in STATUS_NAMES.keys()}
-    all_latest_results = get_latest_case_statuses(db, [c.id for c in db.query(TestCase).all()])
-    for result in all_latest_results.values():
-        status_counts[result.status_id] = status_counts.get(result.status_id, 0) + 1
-    
-    # Build query params for pagination
-    query_params = []
-    if section_id_int:
-        query_params.append(f"section_id={section_id_int}")
-    if type_id_int:
-        query_params.append(f"type_id={type_id_int}")
-    if priority_id_int:
-        query_params.append(f"priority_id={priority_id_int}")
-    query_params_str = "&".join(query_params)
-    
-    return templates.TemplateResponse("cases_list.html", {
-        "request": request,
-        "cases": cases,
-        "sections": sections,
-        "section_case_counts": section_case_counts,
-        "case_statuses": case_statuses,
-        "status_counts": status_counts,
-        "total_cases": total_cases,
-        "current_page": page,
-        "total_pages": total_pages,
-        "query_params": query_params_str,
-        "current_section_id": section_id_int,
-        "current_type_id": type_id_int,
-        "current_priority_id": priority_id_int,
-        "status_names": STATUS_NAMES,
-        "type_names": TYPE_NAMES,
-        "priority_names": PRIORITY_NAMES,
-        "status_classes": get_status_classes()
-    })
+        
+        try:
+            if section_id and section_id.strip():
+                section_id_int = int(section_id)
+        except (ValueError, AttributeError):
+            section_id_int = None
+            
+        try:
+            if type_id and type_id.strip():
+                type_id_int = int(type_id)
+        except (ValueError, AttributeError):
+            type_id_int = None
+            
+        try:
+            if priority_id and priority_id.strip():
+                priority_id_int = int(priority_id)
+        except (ValueError, AttributeError):
+            priority_id_int = None
+        
+        # Build query with error handling
+        try:
+            query = db.query(TestCase).join(Section).filter(Section.project_id == 1)
+            
+            if section_id_int:
+                query = query.filter(TestCase.section_id == section_id_int)
+            if type_id_int:
+                query = query.filter(TestCase.type_id == type_id_int)
+            if priority_id_int:
+                query = query.filter(TestCase.priority_id == priority_id_int)
+            
+            # Get total count
+            total_cases = query.count()
+            total_pages = max(1, (total_cases + limit - 1) // limit)
+            
+            # Get paginated results
+            offset = (page - 1) * limit
+            cases = query.offset(offset).limit(limit).all()
+            
+        except Exception as e:
+            print(f"Error in query: {e}")
+            cases = []
+            total_cases = 0
+            total_pages = 1
+        
+        # Get sections and case counts with error handling
+        try:
+            sections = db.query(Section).filter(Section.project_id == 1).all()
+            section_case_counts = {}
+            for section in sections:
+                try:
+                    count = db.query(TestCase).filter(TestCase.section_id == section.id).count()
+                    section_case_counts[section.id] = count
+                except Exception as e:
+                    print(f"Error counting cases for section {section.id}: {e}")
+                    section_case_counts[section.id] = 0
+        except Exception as e:
+            print(f"Error getting sections: {e}")
+            sections = []
+            section_case_counts = {}
+        
+        # Get case statuses with error handling
+        case_statuses = {}
+        status_counts = {status_id: 0 for status_id in STATUS_NAMES.keys()}
+        
+        try:
+            if cases:
+                case_ids = [case.id for case in cases]
+                case_statuses = get_latest_case_statuses(db, case_ids)
+        except Exception as e:
+            print(f"Error getting case statuses: {e}")
+            case_statuses = {}
+        
+        # Build query params for pagination
+        query_params = []
+        if section_id_int:
+            query_params.append(f"section_id={section_id_int}")
+        if type_id_int:
+            query_params.append(f"type_id={type_id_int}")
+        if priority_id_int:
+            query_params.append(f"priority_id={priority_id_int}")
+        query_params_str = "&".join(query_params)
+        
+        return templates.TemplateResponse("cases_list.html", {
+            "request": request,
+            "cases": cases,
+            "sections": sections,
+            "section_case_counts": section_case_counts,
+            "case_statuses": case_statuses,
+            "status_counts": status_counts,
+            "total_cases": total_cases,
+            "current_page": page,
+            "total_pages": total_pages,
+            "query_params": query_params_str,
+            "current_section_id": section_id_int,
+            "current_type_id": type_id_int,
+            "current_priority_id": priority_id_int,
+            "status_names": STATUS_NAMES,
+            "type_names": TYPE_NAMES,
+            "priority_names": PRIORITY_NAMES,
+            "status_classes": get_status_classes()
+        })
+        
+    except Exception as e:
+        print(f"Critical error in cases_list: {e}")
+        # Return a minimal working response
+        return templates.TemplateResponse("cases_list.html", {
+            "request": request,
+            "cases": [],
+            "sections": [],
+            "section_case_counts": {},
+            "case_statuses": {},
+            "status_counts": {status_id: 0 for status_id in STATUS_NAMES.keys()},
+            "total_cases": 0,
+            "current_page": 1,
+            "total_pages": 1,
+            "query_params": "",
+            "current_section_id": None,
+            "current_type_id": None,
+            "current_priority_id": None,
+            "status_names": STATUS_NAMES,
+            "type_names": TYPE_NAMES,
+            "priority_names": PRIORITY_NAMES,
+            "status_classes": get_status_classes()
+        })
 
 @app.get("/ui/case/{case_id}", response_class=HTMLResponse)
 def case_detail(request: Request, case_id: int, db: Session = Depends(get_database)):
