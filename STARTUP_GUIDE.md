@@ -8,7 +8,7 @@ This guide covers all the different ways to start and manage the Mock Services s
 |--------|----------|-------|---------|----------|
 | **🐳 Docker Compose** | All OS | `docker-compose.yml` | `docker compose up -d --build` | **Recommended** - Production-like |
 | **🔧 All Services Script** | Mac/Linux | `start-all.sh` / `stop-all.sh` | `./start-all.sh` | One command for all services |
-| **🪟 All Services Batch** | Windows | `start-all.bat` / `stop-all.bat` | `start-all.bat` | Windows one-command startup |
+| **🪟 All Services Batch** | Windows | `start-all.bat` / `stop-all.bat` | `start-all.bat` | Windows one-command startup (simple version) |
 | **⚙️ Individual Scripts** | Mac/Linux | `mock-services/*/start.sh` | `cd service && ./start.sh` | Service-by-service control |
 | **🔧 Individual Batch** | Windows | `mock-services/*/start.bat` | `cd service && start.bat` | Windows service-by-service |
 | **🐍 Direct Python** | All OS | `app.py` / `start_simple.py` | `python app.py` | Direct execution |
@@ -108,7 +108,8 @@ chmod +x start-all.sh stop-all.sh
 - **Windows native** batch files
 - **No WSL required**
 - **Command prompt** friendly
-- **Same features** as shell scripts
+- **Simplified design** - no complex variable expansion
+- **Cross-platform compatibility** tested
 
 ### 📁 Files
 - `start-all.bat` - Start all services on Windows
@@ -135,10 +136,11 @@ start-all.bat help
 
 ### 🔍 Features
 - **Dependency checking** (Python, Docker)
-- **Port monitoring** with netstat
+- **Simple service startup** - no complex loops
 - **Process management** with taskkill
-- **Log archiving** with timestamps
+- **Log file management** in `logs/` directory
 - **Error handling** and user prompts
+- **Docker support** for containerized deployment
 
 ## ⚙️ Method 4: Individual Service Scripts
 
@@ -247,6 +249,18 @@ rm -rf .venv
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
+
+#### Windows Batch File Issues
+```cmd
+# If you get "was unexpected at this time" errors:
+# Make sure you're using the correct batch files:
+start-all.bat          # ✅ Working (simplified version)
+stop-all.bat           # ✅ Working (simplified version)
+
+# NOT these (they were removed due to delayed expansion issues):
+# start-all-fixed.bat  # ❌ Removed
+# start-all-simple.bat # ❌ Renamed to start-all.bat
 ```
 
 ### 📋 Debug Information
