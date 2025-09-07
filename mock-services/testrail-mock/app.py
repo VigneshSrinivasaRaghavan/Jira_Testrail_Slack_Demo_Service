@@ -747,6 +747,13 @@ def root():
     """Redirect root to UI"""
     return RedirectResponse(url="/ui")
 
+# Favicon handler
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Return empty response for favicon requests."""
+    from fastapi.responses import Response
+    return Response(status_code=204)
+
 if __name__ == "__main__":
     # Development server
     uvicorn.run(

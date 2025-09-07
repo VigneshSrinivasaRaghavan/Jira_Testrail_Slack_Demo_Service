@@ -801,3 +801,9 @@ async def ui_issue_detail(request: Request, key: str):
 async def health():
     """Health check endpoint - no authentication required."""
     return {"status": "ok", "service": "jira-mock", "version": "1.0.0"}
+
+# Favicon handler
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """Return empty response for favicon requests."""
+    return Response(status_code=204)
