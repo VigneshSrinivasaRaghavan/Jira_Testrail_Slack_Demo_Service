@@ -61,7 +61,9 @@ start.bat
 | `POST` | `/index.php?/api/v2/add_case/{section_id}` | Create test case |
 | `GET` | `/index.php?/api/v2/get_case/{case_id}` | Get test case |
 | `POST` | `/index.php?/api/v2/update_case/{case_id}` | Update test case |
+| `DELETE` | `/index.php?/api/v2/delete_case/{case_id}` | Delete test case |
 | `GET` | `/index.php?/api/v2/get_cases/{project_id}` | Get all test cases |
+| `DELETE` | `/index.php?/api/v2/cases/bulk` | Bulk delete test cases |
 | `POST` | `/index.php?/api/v2/add_result/{case_id}` | Add test result |
 | `GET` | `/index.php?/api/v2/get_results/{case_id}` | Get test results |
 | `POST` | `/index.php?/api/v2/add_run/{project_id}` | Create test run |
@@ -108,6 +110,24 @@ curl -X POST "http://localhost:4002/index.php?/api/v2/add_case/1" \
 ```bash
 curl -X GET "http://localhost:4002/index.php?/api/v2/get_case/1" \
   -H "Authorization: Bearer your-token"
+```
+
+### Delete Test Case
+
+```bash
+curl -X DELETE "http://localhost:4002/api/v2/case/1" \
+  -H "Authorization: Bearer your-token"
+```
+
+### Bulk Delete Test Cases
+
+```bash
+curl -X DELETE "http://localhost:4002/api/v2/cases/bulk" \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "case_ids": [1, 2, 3, 4, 5]
+  }'
 ```
 
 ### Add Test Result

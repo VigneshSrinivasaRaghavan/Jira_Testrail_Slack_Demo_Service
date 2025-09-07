@@ -4,9 +4,10 @@ Clean REST API with TestRail compatibility
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from pydantic import BaseModel
 from storage import get_database
 from models import (
     Project, Section, Template, TestCase, TestResult, TestRun, RunEntry,
@@ -17,6 +18,17 @@ from models import (
 
 # Create API router
 api_router = APIRouter()
+
+# Pydantic models for bulk operations
+class BulkDeleteRequest(BaseModel):
+    case_ids: List[int]
+    
+class BulkDeleteResponse(BaseModel):
+    message: str
+    deleted_count: int
+    deleted_case_ids: List[int]
+    not_found_case_ids: List[int]
+    errors: List[str]
 
 # Projects endpoints
 @api_router.get("/api/v2/projects", response_model=List[ProjectResponse])
@@ -125,6 +137,82 @@ def update_case(case_id: int, case: TestCaseCreate, db: Session = Depends(get_da
     db.refresh(db_case)
     return db_case
 
+@api_router.delete("/api/v2/case/{case_id}")
+def delete_case(case_id: int, db: Session = Depends(get_database)):
+    """Delete test case by ID"""
+    db_case = db.query(TestCase).filter(TestCase.id == case_id).first()
+    if not db_case:
+        raise HTTPException(status_code=404, detail="Test case not found")
+    
+    # Delete associated results and run entries (cascade should handle this, but being explicit)
+    db.query(TestResult).filter(TestResult.case_id == case_id).delete()
+    db.query(RunEntry).filter(RunEntry.case_id == case_id).delete()
+    
+    # Delete the test case
+    db.delete(db_case)
+    db.commit()
+    
+    return {"message": f"Test case {case_id} deleted successfully", "deleted_case_id": case_id}
+
+@api_router.delete("/api/v2/cases/bulk", response_model=BulkDeleteResponse)
+def bulk_delete_cases(request: BulkDeleteRequest, db: Session = Depends(get_database)):
+    """Bulk delete test cases by IDs"""
+    if not request.case_ids:
+        raise HTTPException(status_code=400, detail="No case IDs provided")
+    
+    if len(request.case_ids) > 100:  # Safety limit
+        raise HTTPException(status_code=400, detail="Cannot delete more than 100 cases at once")
+    
+    deleted_case_ids = []
+    not_found_case_ids = []
+    errors = []
+    
+    for case_id in request.case_ids:
+        try:
+            # Check if case exists
+            db_case = db.query(TestCase).filter(TestCase.id == case_id).first()
+            if not db_case:
+                not_found_case_ids.append(case_id)
+                continue
+            
+            # Delete associated results and run entries
+            results_deleted = db.query(TestResult).filter(TestResult.case_id == case_id).delete()
+            entries_deleted = db.query(RunEntry).filter(RunEntry.case_id == case_id).delete()
+            
+            # Delete the test case
+            db.delete(db_case)
+            deleted_case_ids.append(case_id)
+            
+        except Exception as e:
+            errors.append(f"Error deleting case {case_id}: {str(e)}")
+            # Rollback this specific case deletion
+            db.rollback()
+            continue
+    
+    # Commit all successful deletions
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to commit bulk deletion: {str(e)}")
+    
+    deleted_count = len(deleted_case_ids)
+    total_requested = len(request.case_ids)
+    
+    message = f"Bulk deletion completed: {deleted_count}/{total_requested} cases deleted"
+    if not_found_case_ids:
+        message += f", {len(not_found_case_ids)} not found"
+    if errors:
+        message += f", {len(errors)} errors occurred"
+    
+    return BulkDeleteResponse(
+        message=message,
+        deleted_count=deleted_count,
+        deleted_case_ids=deleted_case_ids,
+        not_found_case_ids=not_found_case_ids,
+        errors=errors
+    )
+
 # Test Results endpoints
 @api_router.get("/api/v2/results/{case_id}", response_model=List[TestResultResponse])
 def get_results(case_id: int, limit: int = Query(50), db: Session = Depends(get_database)):
@@ -198,6 +286,11 @@ def legacy_add_result(case_id: int = Query(..., alias="case_id"), result: TestRe
 def legacy_get_case(case_id: int = Query(..., alias="case_id"), db: Session = Depends(get_database)):
     """Legacy TestRail endpoint: get_case/{case_id}"""
     return get_case(case_id, db)
+
+@api_router.delete("/index.php")
+def legacy_delete_case(case_id: int = Query(..., alias="case_id"), db: Session = Depends(get_database)):
+    """Legacy TestRail endpoint: delete_case/{case_id}"""
+    return delete_case(case_id, db)
 
 # Utility endpoints
 @api_router.get("/api/v2/statuses")
