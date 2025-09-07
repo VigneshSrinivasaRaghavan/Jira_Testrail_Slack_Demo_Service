@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
 		"name": "TestRail Mock API",
-		"description": "Complete API collection for TestRail Mock Service\n\nBase URL: http://localhost:4002\n\nThis collection includes all endpoints for:\n- Project Management\n- Section Management\n- Test Case Management\n- Test Result Management\n- Test Run Management\n- Statistics and Metadata\n- Legacy TestRail Compatibility\n\nStatus IDs:\n- 1 = Passed ✅\n- 2 = Blocked ⛔\n- 3 = Untested ❓\n- 4 = Retest 🔄\n- 5 = Failed ❌\n\nType IDs:\n- 1 = Functional\n- 2 = Regression\n- 3 = Smoke\n- 4 = Performance\n- 5 = Security\n\nPriority IDs:\n- 1 = Critical\n- 2 = High\n- 3 = Medium\n- 4 = Low",
+		"description": "Complete API collection for TestRail Mock Service\n\nBase URL: http://localhost:4002\n\nThis collection includes all endpoints for:\n- Project Management\n- Section Management\n- Test Case Management (CRUD + Delete Operations)\n- Test Result Management\n- Test Run Management\n- Statistics and Metadata\n- Legacy TestRail Compatibility\n\n🗑️ NEW: Delete Operations\n- Single Delete: DELETE /api/v2/case/{id}\n- Bulk Delete: DELETE /api/v2/cases/bulk\n- Legacy Delete: DELETE /index.php?case_id={id}\n\nStatus IDs:\n- 1 = Passed ✅\n- 2 = Blocked ⛔\n- 3 = Untested ❓\n- 4 = Retest 🔄\n- 5 = Failed ❌\n\nType IDs:\n- 1 = Functional\n- 2 = Regression\n- 3 = Smoke\n- 4 = Performance\n- 5 = Security\n\nPriority IDs:\n- 1 = Critical\n- 2 = High\n- 3 = Medium\n- 4 = Low",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "12345678"
 	},
@@ -415,6 +415,224 @@
 						},
 						"description": "Create a test case with detailed step-by-step instructions"
 					}
+				},
+				{
+					"name": "Delete Single Test Case",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer test-token"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v2/case/{{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"case",
+								"{{case_id}}"
+							]
+						},
+						"description": "Delete a single test case by ID. This will also cascade delete associated results and run entries."
+					},
+					"response": [
+						{
+							"name": "Delete Case Success",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v2/case/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"case",
+										"1"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Test case 1 deleted successfully\",\n    \"deleted_case_id\": 1\n}"
+						},
+						{
+							"name": "Delete Case Not Found",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v2/case/99999",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"case",
+										"99999"
+									]
+								}
+							},
+							"status": "Not Found",
+							"code": 404,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"detail\": \"Test case not found\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Bulk Delete Test Cases",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer test-token"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"case_ids\": [1, 2, 3, 4, 5]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v2/cases/bulk",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v2",
+								"cases",
+								"bulk"
+							]
+						},
+						"description": "Delete multiple test cases at once. Maximum 100 cases per request. Returns detailed results with success/failure breakdown."
+					},
+					"response": [
+						{
+							"name": "Bulk Delete Success",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"case_ids\": [1, 2, 3, 99999]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/bulk",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"bulk"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Bulk deletion completed: 3/4 cases deleted, 1 not found\",\n    \"deleted_count\": 3,\n    \"deleted_case_ids\": [1, 2, 3],\n    \"not_found_case_ids\": [99999],\n    \"errors\": []\n}"
+						},
+						{
+							"name": "Bulk Delete Empty Array",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"case_ids\": []\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/bulk",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"bulk"
+									]
+								}
+							},
+							"status": "Bad Request",
+							"code": 400,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"detail\": \"No case IDs provided\"\n}"
+						}
+					]
 				}
 			]
 		},
@@ -812,6 +1030,74 @@
 						},
 						"description": "Legacy TestRail-style endpoint to create a test case (compatible with existing TestRail integrations)"
 					}
+				},
+				{
+					"name": "Legacy - Delete Test Case",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer test-token"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/index.php?case_id={{case_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"index.php"
+							],
+							"query": [
+								{
+									"key": "case_id",
+									"value": "{{case_id}}"
+								}
+							]
+						},
+						"description": "Legacy TestRail-style endpoint to delete a test case (compatible with existing TestRail integrations)"
+					},
+					"response": [
+						{
+							"name": "Legacy Delete Success",
+							"originalRequest": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/index.php?case_id=1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"index.php"
+									],
+									"query": [
+										{
+											"key": "case_id",
+											"value": "1"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n    \"message\": \"Test case 1 deleted successfully\",\n    \"deleted_case_id\": 1\n}"
+						}
+					]
 				}
 			]
 		},
@@ -930,6 +1216,148 @@
 						}
 					],
 					"description": "A complete test workflow demonstrating the full lifecycle: Create test case → Execute test → Create test run → Get statistics"
+				},
+				{
+					"name": "Delete Operations Workflow",
+					"item": [
+						{
+							"name": "1. Create Test Cases for Deletion",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Test Case to be Deleted - {{$randomInt}}\",\n    \"template_id\": 1,\n    \"type_id\": 1,\n    \"priority_id\": 3,\n    \"expected_result\": \"This test case will be deleted as part of the workflow\",\n    \"preconditions\": \"Test case exists in the system\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"1"
+									]
+								},
+								"description": "Step 1: Create test cases that will be used for deletion testing"
+							}
+						},
+						{
+							"name": "2. Single Delete Test",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/v2/case/{{case_id}}",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"case",
+										"{{case_id}}"
+									]
+								},
+								"description": "Step 2: Test single case deletion"
+							}
+						},
+						{
+							"name": "3. Create Multiple Cases for Bulk Delete",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Bulk Delete Test Case {{$randomInt}}\",\n    \"template_id\": 1,\n    \"type_id\": 2,\n    \"priority_id\": 4,\n    \"expected_result\": \"This is one of multiple test cases for bulk deletion\",\n    \"preconditions\": \"Multiple test cases exist for bulk operations\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"1"
+									]
+								},
+								"description": "Step 3: Create multiple test cases for bulk deletion demo"
+							}
+						},
+						{
+							"name": "4. Bulk Delete Test",
+							"request": {
+								"method": "DELETE",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer test-token"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"case_ids\": [2, 3, 4, 5, 99999]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/bulk",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"bulk"
+									]
+								},
+								"description": "Step 4: Test bulk deletion with mix of existing and non-existing IDs"
+							}
+						},
+						{
+							"name": "5. Verify Deletions",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v2/cases/1",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"v2",
+										"cases",
+										"1"
+									]
+								},
+								"description": "Step 5: Verify that deleted cases are no longer in the system"
+							}
+						}
+					],
+					"description": "Complete delete operations workflow: Create test cases → Single delete → Create multiple cases → Bulk delete → Verify results"
 				}
 			]
 		}
