@@ -8,7 +8,7 @@ from typing import List, Optional
 from fastapi import FastAPI, Depends, HTTPException, Request, Form, Query
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func
@@ -751,7 +751,6 @@ def root():
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """Return empty response for favicon requests."""
-    from fastapi.responses import Response
     return Response(status_code=204)
 
 if __name__ == "__main__":
