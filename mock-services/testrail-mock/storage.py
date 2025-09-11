@@ -34,51 +34,98 @@ class TestRailStorage:
             db.close()
     
     def seed_initial_data(self):
-        """Load initial seed data"""
-        db = next(self.get_db())
+        """Load initial seed data with robust error handling"""
+        db = self.SessionLocal()
         try:
             # Check if data already exists
-            if db.query(Project).first():
+            existing_project = db.query(Project).first()
+            if existing_project:
+                print("Seed data already exists, skipping initialization")
                 return
             
-            # Create default templates
-            templates = [
-                Template(id=1, name="Test Case (Text)", is_default=True),
-                Template(id=2, name="Test Case (Steps)", is_default=False),
-                Template(id=3, name="Exploratory Session", is_default=False)
-            ]
-            for template in templates:
-                db.add(template)
+            print("Initializing seed data...")
             
-            # Create default project
-            project = Project(
-                id=1,
-                name="Demo Project",
-                description="Sample project for TestRail mock service"
-            )
-            db.add(project)
+            # Create default templates with error handling
+            try:
+                templates = [
+                    Template(id=1, name="Test Case (Text)", is_default=True),
+                    Template(id=2, name="Test Case (Steps)", is_default=False),
+                    Template(id=3, name="Exploratory Session", is_default=False)
+                ]
+                for template in templates:
+                    db.add(template)
+                print("Templates created successfully")
+            except Exception as e:
+                print(f"Error creating templates: {e}")
             
-            # Create sections
-            sections = [
-                Section(id=1, project_id=1, name="Authentication", description="Login and authentication tests"),
-                Section(id=2, project_id=1, name="User Management", description="User creation, editing, and deletion"),
-                Section(id=3, project_id=1, name="API Tests", description="REST API endpoint testing"),
-                Section(id=4, project_id=1, name="UI Tests", description="User interface testing"),
-                Section(id=5, project_id=1, name="Integration", description="Integration and end-to-end tests")
-            ]
-            for section in sections:
-                db.add(section)
+            # Create default project with error handling
+            try:
+                project = Project(
+                    id=1,
+                    name="Demo Project",
+                    description="Sample project for TestRail mock service"
+                )
+                db.add(project)
+                print("Default project created successfully")
+            except Exception as e:
+                print(f"Error creating default project: {e}")
             
+            # Create sections with error handling
+            try:
+                sections = [
+                    Section(id=1, project_id=1, name="Authentication", description="Login and authentication tests"),
+                    Section(id=2, project_id=1, name="User Management", description="User creation, editing, and deletion"),
+                    Section(id=3, project_id=1, name="API Tests", description="REST API endpoint testing"),
+                    Section(id=4, project_id=1, name="UI Tests", description="User interface testing"),
+                    Section(id=5, project_id=1, name="Integration", description="Integration and end-to-end tests")
+                ]
+                for section in sections:
+                    db.add(section)
+                print("Sections created successfully")
+            except Exception as e:
+                print(f"Error creating sections: {e}")
+            
+            # Commit the changes
             db.commit()
+            print("Seed data committed successfully")
             
-            # Load seed data from JSON if available
-            self.load_seed_data_from_json(db)
+            # Load additional seed data from JSON if available
+            try:
+                self.load_seed_data_from_json(db)
+            except Exception as e:
+                print(f"Error loading JSON seed data: {e}")
             
         except Exception as e:
             db.rollback()
-            print(f"Error seeding data: {e}")
+            print(f"Critical error seeding data: {e}")
+            # Try to ensure at least basic data exists
+            self.ensure_minimal_data(db)
         finally:
             db.close()
+    
+    def ensure_minimal_data(self, db: Session):
+        """Ensure minimal data exists for the service to function"""
+        try:
+            # Ensure at least one project exists
+            if not db.query(Project).first():
+                project = Project(id=1, name="Demo Project", description="Default project")
+                db.add(project)
+                
+            # Ensure at least one section exists  
+            if not db.query(Section).first():
+                section = Section(id=1, project_id=1, name="Default Section", description="Default section")
+                db.add(section)
+                
+            # Ensure at least one template exists
+            if not db.query(Template).first():
+                template = Template(id=1, name="Test Case (Text)", is_default=True)
+                db.add(template)
+                
+            db.commit()
+            print("Minimal data ensured")
+        except Exception as e:
+            print(f"Error ensuring minimal data: {e}")
+            db.rollback()
     
     def load_seed_data_from_json(self, db: Session):
         """Load seed data from JSON files"""
@@ -253,5 +300,12 @@ class TestRailStorage:
 storage = TestRailStorage()
 
 def get_database():
-    """Dependency to get database session"""
-    return next(storage.get_db())
+    """Dependency to get database session with proper lifecycle management"""
+    db = storage.SessionLocal()
+    try:
+        yield db
+    except Exception as e:
+        db.rollback()
+        raise e
+    finally:
+        db.close()
