@@ -242,7 +242,7 @@ async def startup():
     c.execute("SELECT COUNT(1) as cnt FROM issues")
     cnt = c.fetchone()[0]
     if cnt == 0:
-        seed_path = os.path.join(os.path.dirname(__file__), "..", "shared", "seed", "sample_issues.json")
+        seed_path = os.path.join(os.path.dirname(__file__), "seed", "sample_issues.json")
         seed_path = os.path.normpath(seed_path)
         if os.path.exists(seed_path):
             with open(seed_path, "r", encoding="utf-8") as fh:
