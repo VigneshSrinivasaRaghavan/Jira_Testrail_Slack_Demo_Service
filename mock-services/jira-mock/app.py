@@ -498,7 +498,7 @@ async def get_issue(issue_key: str = Path(..., example="QA-1", description="Issu
             "priority": {"name": priority_name},
             "status": {"name": "To Do", "statusCategory": {"name": "To Do"}},
             "assignee": ({"displayName": assignee_val} if assignee_val else None),
-            "reporter": ({"displayName": reporter_val} if reporter_val else {"accountId": "mock-reporter", "displayName": "Mock Reporter"}),
+            "reporter": {"accountId": reporter_val or "mock-reporter", "displayName": reporter_val or "Mock Reporter"},
             "created": created,
             "updated": updated,
             "labels": labels_parsed,
