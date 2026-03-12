@@ -1,0 +1,18 @@
+[
+  {
+    "key": "QA-1",
+    "fields": {
+      "summary": "Login Page Workflow for OrangeHRM",
+      "issuetype": { "name": "Story" },
+      "description": "As a user, I want to log in to OrangeHRM so that I can access the HR management system.\n\nApp URL: https://opensource-demo.orangehrmlive.com/web/index.php/auth/login\n\n---\n\nACCEPTANCE CRITERIA\n\n[Page Elements]\n\nAC1 - Given I navigate to the login URL, then the page title should be \"OrangeHRM\".\n\nAC2 - Given I am on the login page, then I should see a Username field, a Password field, and a Login button.\n\nAC3 - Given I am on the login page, then I should see a credential hint box displaying \"Username: Admin\" and \"Password: admin123\".\n\nAC4 - Given I am on the login page, then I should see a \"Forgot your password?\" link.\n\nAC5 - Given I am on the login page, then the footer should display \"OrangeHRM OS 5.8\".\n\n[Valid Login]\n\nAC6 - Given I enter username \"Admin\" and password \"admin123\", when I click Login, then I should be redirected to the dashboard (URL path changes to /dashboard).\n\nAC7 - Given I have logged in successfully, then the dashboard page should be visible and the user menu should show the logged-in user.\n\n[Invalid Login]\n\nAC8 - Given I enter an invalid username (e.g. \"wronguser\") and any password, when I click Login, then I should see an error message \"Invalid credentials\".\n\nAC9 - Given I enter username \"Admin\" and an incorrect password, when I click Login, then I should see an error message \"Invalid credentials\".\n\nAC10 - Given I leave the Username field empty and click Login, then a \"Required\" validation message should appear below the Username field.\n\nAC11 - Given I leave the Password field empty and click Login, then a \"Required\" validation message should appear below the Password field.\n\nAC12 - Given I leave both Username and Password fields empty and click Login, then \"Required\" validation messages should appear below both fields."
+    }
+  },
+  {
+    "key": "QA-2",
+    "fields": {
+      "summary": "Logout Workflow for OrangeHRM",
+      "issuetype": { "name": "Story" },
+      "description": "As a logged-in user, I want to log out of OrangeHRM so that my session is terminated and my account is secured.\n\nApp URL: https://opensource-demo.orangehrmlive.com/web/index.php/auth/login\n\n---\n\nACCEPTANCE CRITERIA\n\nAC1 - Given I am logged in, when I click on the user profile icon in the top-right navigation, then a dropdown should appear with a \"Logout\" option.\n\nAC2 - Given I click the \"Logout\" option, then I should be redirected to the login page (URL path returns to /auth/login).\n\nAC3 - Given I have logged out, when I navigate to a protected page using the browser back button or a direct URL, then I should be redirected back to the login page.\n\nAC4 - Given I have logged out, then my session should be fully invalidated (no authenticated actions should succeed).\n\nAC5 - Given I am on the login page after logout, then the Username and Password fields should be empty."
+    }
+  }
+]
