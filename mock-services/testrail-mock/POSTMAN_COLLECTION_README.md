@@ -1,217 +1,182 @@
-# TestRail Mock API - Postman Collection
-
-## 📋 Overview
-
-This Postman collection provides comprehensive testing for all TestRail Mock API endpoints. It includes examples, test scenarios, and proper documentation for agent integration testing.
+# TestRail Mock – Postman Collection
 
 ## 📁 Files
 
-- **`TestRail_Mock_API.postman_collection.json`** - Main collection with all API endpoints
-- **`TestRail_Mock_Environment.postman_environment.json`** - Environment variables for local testing
-- **`POSTMAN_COLLECTION_README.md`** - This documentation file
+The Postman collection and environment live in the shared **`postman-collections/`** folder at the project root:
+
+| File | Description |
+|------|-------------|
+| `postman-collections/TestRail_Mock.postman_collection.json` | Full collection — 41 requests across 8 folders |
+| `postman-collections/TestRail_Mock.postman_environment.json` | Environment with fixed credentials and dynamic ID variables |
+
+---
 
 ## 🚀 Quick Start
 
-### 1. Import Collection & Environment
+1. Open Postman → **Import**
+2. Import both files from `postman-collections/`:
+   - `TestRail_Mock.postman_collection.json`
+   - `TestRail_Mock.postman_environment.json`
+3. Select the **"TestRail Mock – Local"** environment from the top-right dropdown
+4. Make sure the mock is running on `http://localhost:4002`
+5. Run **Health Check** to verify, then follow the request order below
 
-1. Open Postman
-2. Click **Import** button
-3. Import both files:
-   - `TestRail_Mock_API.postman_collection.json`
-   - `TestRail_Mock_Environment.postman_environment.json`
+---
 
-### 2. Set Environment
+## 🔑 Authentication
 
-1. Select **"TestRail Mock - Local"** environment from the dropdown
-2. Verify the `base_url` is set to `http://localhost:4002`
+All requests use **HTTP Basic Auth** — the same mechanism as real TestRail.
 
-### 3. Start TestRail Mock Service
+| Field | Value |
+|-------|-------|
+| **Email (username)** | `admin@testrail.mock` |
+| **API Key (password)** | `MockAPI@123` |
+| **Pre-built header** | `Authorization: Basic YWRtaW5AdGVzdHJhaWwubW9jazpNb2NrQVBJQDEyMw==` |
 
-```bash
-# Navigate to testrail-mock directory
-cd mock-services/testrail-mock
+Already configured in the environment. The collection-level auth uses `{{email}}` and `{{api_key}}` automatically.
 
-# Start the service
-./start.sh
-# OR
-source .venv/bin/activate && python -m uvicorn app:app --host 0.0.0.0 --port 4002 --reload
-```
+> Bearer token shortcut also accepted: `Authorization: Bearer MockAPI@123`
 
-### 4. Test Health Check
-
-Run the **"Health Check"** request to verify the service is running.
+---
 
 ## 📚 Collection Structure
 
-### 🏥 Health Check
-- **GET** `/health` - Service health verification
+### 🏥 System
+- `GET /health` — verify service is up (no auth required)
+
+### 🔧 Utilities
+- `GET /index.php?/api/v2/get_statuses`
+- `GET /index.php?/api/v2/get_case_types`
+- `GET /index.php?/api/v2/get_priorities`
+- `GET /index.php?/api/v2/get_templates/{{project_id}}`
 
 ### 🏗️ Projects
-- **GET** `/api/v2/projects` - List all projects
-- **GET** `/api/v2/project/{id}` - Get specific project
+- Get All Projects ← auto-saves `project_id`
+- Get Project
+- Add Project ← auto-saves `project_id`
+- Update Project
+- Delete Project
 
 ### 📂 Sections
-- **GET** `/api/v2/sections/{project_id}` - Get project sections
-- **POST** `/api/v2/sections/{project_id}` - Create new section
+- Get Sections ← auto-saves `section_id`
+- Get Section
+- Add Section ← auto-saves `section_id`
+- Update Section
+- Delete Section
 
 ### 📝 Test Cases
-- **GET** `/api/v2/cases/{project_id}` - Get all test cases
-- **GET** `/api/v2/case/{case_id}` - Get specific test case
-- **POST** `/api/v2/cases/{section_id}` - Create test case (simple)
-- **POST** `/api/v2/cases/{section_id}` - Create test case (with steps)
-
-### ✅ Test Results
-- **GET** `/api/v2/results/{case_id}` - Get test case results
-- **POST** `/api/v2/results/{case_id}` - Add result (Passed)
-- **POST** `/api/v2/results/{case_id}` - Add result (Failed)
-- **POST** `/api/v2/results/{case_id}` - Add result (Blocked)
+- Get Cases ← auto-saves `case_id`
+- Get Cases (filtered by section)
+- Get Case
+- Add Case ← auto-saves `case_id`
+- Update Case
+- Delete Case
+- Delete Cases (bulk)
+- Copy Cases to Section
+- Move Cases to Section
 
 ### 🏃 Test Runs
-- **GET** `/api/v2/runs/{project_id}` - Get project test runs
-- **POST** `/api/v2/runs/{project_id}` - Create test run
+- Get Runs ← auto-saves `run_id`
+- Get Run
+- Add Run (specific cases) ← auto-saves `run_id`
+- Add Run (include all cases)
+- Update Run
+- Close Run
+- Delete Run
 
-### 📊 Templates & Metadata
-- **GET** `/api/v2/templates` - Get available templates
-- **GET** `/api/v2/stats/{project_id}` - Get project statistics
+### ✅ Test Results
+- Get Results (by case)
+- Get Results for Case in Run
+- Get Results for Run
+- Add Result (for test/case)
+- Add Result for Case in Run
+- Add Results — bulk by `test_id`
+- Add Results for Cases — bulk by `case_id` ⭐ most common for automation
 
-### 🔄 Legacy TestRail Endpoints
-- **GET** `/index.php?case_id={id}` - Legacy get test case
-- **POST** `/index.php?section_id={id}` - Legacy create test case
+### 🔐 Auth Examples
+- Basic Auth via pre-computed header
+- Bearer token shortcut
+- Wrong credentials → expect 401
 
-### 🎯 Test Scenarios
-- **Complete Test Workflow** - End-to-end testing scenario
+---
 
 ## 🔧 Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `base_url` | `http://localhost:4002` | TestRail Mock service URL |
-| `project_id` | `1` | Default project ID |
-| `section_id` | `1` | Default section ID |
-| `case_id` | `1` | Default test case ID |
-| `created_case_id` | `` | ID of newly created test case |
-
-## 📋 Status Reference
-
-### Status IDs
-- **1** = Passed ✅
-- **2** = Blocked ⛔
-- **3** = Untested ❓
-- **4** = Retest 🔄
-- **5** = Failed ❌
-
-### Type IDs
-- **1** = Functional
-- **2** = Regression
-- **3** = Smoke
-- **4** = Performance
-- **5** = Security
-
-### Priority IDs
-- **1** = Critical
-- **2** = High
-- **3** = Medium
-- **4** = Low
-
-### Template IDs
-- **1** = Test Case (Text)
-- **2** = Test Case (Steps)
-- **3** = Exploratory Session
-
-## 🧪 Testing Workflows
-
-### Basic Test Case Creation
-1. **Health Check** - Verify service is running
-2. **Get All Projects** - List available projects
-3. **Get Sections** - List sections in project
-4. **Create Test Case** - Create a new test case
-5. **Add Test Result** - Execute and record result
-
-### Complete Agent Workflow
-1. **Create Test Case (with Steps)** - Create detailed test case
-2. **Execute Test (Pass)** - Add passing result
-3. **Create Test Run** - Organize tests in a run
-4. **Get Final Statistics** - View updated project stats
-
-### Legacy Compatibility Testing
-1. **Legacy - Add Test Case** - Test legacy endpoint
-2. **Legacy - Get Test Case** - Retrieve via legacy endpoint
-
-## 🔍 Example Requests
-
-### Create Test Case with Steps
-```json
-POST /api/v2/cases/1
-{
-    "title": "Login Functionality Test",
-    "template_id": 2,
-    "type_id": 1,
-    "priority_id": 1,
-    "expected_result": "User should be able to login successfully",
-    "preconditions": "User account exists",
-    "steps": [
-        {
-            "step": "Navigate to login page",
-            "expected": "Login form is displayed"
-        },
-        {
-            "step": "Enter valid credentials",
-            "expected": "Credentials are accepted"
-        },
-        {
-            "step": "Click login button",
-            "expected": "User is redirected to dashboard"
-        }
-    ]
-}
-```
-
-### Add Test Result
-```json
-POST /api/v2/results/1
-{
-    "status_id": 1,
-    "comment": "Test executed successfully. All steps passed.",
-    "elapsed": "2m 30s"
-}
-```
-
-## 🚨 Troubleshooting
-
-### Service Not Running
-- Verify TestRail Mock service is running on port 4002
-- Check health endpoint: `GET http://localhost:4002/health`
-
-### 404 Errors
-- Ensure you're using the correct endpoint paths
-- Verify IDs exist (project_id=1, section_id=1, etc.)
-
-### 422 Validation Errors
-- Check required fields in request body
-- Verify data types match API expectations
-- Ensure status_id, type_id, priority_id are valid integers
-
-### Legacy Endpoint Issues
-- Use query parameters: `?section_id=1` or `?case_id=1`
-- Legacy endpoints expect different parameter format
-
-## 📖 Additional Resources
-
-- **API Documentation**: See main README.md in testrail-mock directory
-- **Source Code**: Check routes.py for endpoint implementations
-- **UI Interface**: Visit http://localhost:4002/ui for web interface
-
-## 🎯 Agent Integration Tips
-
-1. **Start with Health Check** - Always verify service availability
-2. **Use Modern Endpoints** - Prefer `/api/v2/` over legacy endpoints
-3. **Handle Status Codes** - Check for 200/201 success responses
-4. **Validate Responses** - Ensure returned data matches expectations
-5. **Test Error Cases** - Try invalid IDs and malformed requests
-6. **Use Statistics** - Monitor project stats for test coverage
+| `base_url` | `http://localhost:4002` | Service base URL |
+| `email` | `admin@testrail.mock` | Fixed auth email |
+| `api_key` | `MockAPI@123` | Fixed API key / Bearer token |
+| `basic_token` | `YWRtaW5A...` | Pre-computed base64 token |
+| `project_id` | `1` | Auto-updated by Add Project / Get All Projects |
+| `section_id` | `1` | Auto-updated by Add Section / Get Sections |
+| `case_id` | `1` | Auto-updated by Add Case / Get Cases |
+| `run_id` | `1` | Auto-updated by Add Run / Get Runs |
 
 ---
 
-**Happy Testing! 🚀**
+## 📋 Status Reference
 
-The TestRail Mock API is ready for comprehensive agent integration testing.
+| ID | Status |
+|----|--------|
+| 1 | Passed ✅ |
+| 2 | Blocked ⛔ |
+| 3 | Untested ❓ |
+| 4 | Retest 🔄 |
+| 5 | Failed ❌ |
+
+## Type IDs
+
+| ID | Type |
+|----|------|
+| 1 | Other / Functional |
+| 2 | Automated |
+| 3 | Functionality |
+| 4 | Regression |
+| 5 | Smoke |
+
+## Priority IDs
+
+| ID | Priority |
+|----|----------|
+| 1 | Low |
+| 2 | Medium |
+| 3 | High |
+| 4 | Critical |
+
+---
+
+## 🧪 Recommended Workflow
+
+Run requests in this order for a complete end-to-end flow:
+
+1. **Health Check** — verify service
+2. **Get All Projects** — sets `project_id`
+3. **Add Section** — sets `section_id`
+4. **Add Case** — sets `case_id`
+5. **Add Run** — sets `run_id` (include `case_id` in `case_ids`)
+6. **Add Result for Case in Run** — records execution result
+7. **Get Results for Run** — verify results recorded
+
+---
+
+## 🔍 Example curl
+
+```bash
+# Add a test result for a case inside a run
+curl -X POST "http://localhost:4002/index.php?/api/v2/add_result_for_case/1/1" \
+  -u "admin@testrail.mock:MockAPI@123" \
+  -H "Content-Type: application/json" \
+  -d '{"status_id": 1, "comment": "Passed", "elapsed": "30s"}'
+```
+
+---
+
+## 🚨 Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `401 Unauthorized` | Use exactly `admin@testrail.mock` / `MockAPI@123` |
+| `400 Bad Request` | ID doesn't exist — create the resource first |
+| `422 Validation Error` | Missing required field or wrong data type |
+| Service not responding | Run `curl http://localhost:4002/health` to check |

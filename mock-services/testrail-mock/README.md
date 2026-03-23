@@ -1,324 +1,277 @@
 # TestRail Mock Service
 
-A FastAPI-based mock service that simulates TestRail's REST API for test case management and execution tracking.
+A FastAPI-based mock that implements the real **TestRail API v2** endpoint patterns for integration testing and student training.
+
+---
 
 ## Features
 
-- 🧪 **Test Case Management**: Create, read, update test cases
-- 📊 **Test Execution**: Add test results and track execution history
-- 🏃 **Test Runs**: Create and manage test runs
-- 📁 **Test Sections**: Organize test cases in sections
-- 🌐 **Web UI**: Simple interface for test management
-- 🔐 **Authentication**: Bearer token validation (configurable)
-- 📊 **API Documentation**: Built-in Swagger/OpenAPI docs
-- 🐳 **Docker Ready**: Containerized with health checks
+- Full TestRail API v2 URL pattern: `GET /index.php?/api/v2/get_case/{id}`
+- Fixed single-credential auth matching real TestRail Basic Auth
+- CRUD for Projects, Sections, Test Cases, Test Runs, Test Results
+- Paginated list responses (`offset`, `limit`, `_links`)
+- Web UI at `/ui` mimicking the TestRail interface
+- Interactive API docs at `/docs` (Swagger UI with Authorize button)
+- SQLite persistence — data survives restarts
+
+---
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
-
-```bash
-# From project root
-docker compose up -d testrail-mock
-
-# View logs
-docker compose logs -f testrail-mock
-```
-
-### Local Development
+### Local
 
 ```bash
 cd mock-services/testrail-mock
-
-# Option 1: Use startup script
-./start.sh
-
-# Option 2: Manual setup
 python3 -m venv .venv
-source .venv/bin/activate
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m uvicorn app:app --host 0.0.0.0 --port 4002 --reload
 ```
 
-### Windows Users
+### Docker Compose
 
-```cmd
-cd mock-services\testrail-mock
-
-# Use batch script
-start.bat
-
-# Or PowerShell
-.\start-testrail.ps1
+```bash
+# From project root
+docker compose up -d testrail-mock
+docker compose logs -f testrail-mock
 ```
+
+---
+
+## Authentication
+
+This mock uses the **exact same auth as real TestRail**: HTTP Basic Auth with your email as the username and your API key as the password.
+
+| Field | Value |
+|-------|-------|
+| **Email** | `admin@testrail.mock` |
+| **API Key** | `MockAPI@123` |
+| **Header** | `Authorization: Basic YWRtaW5AdGVzdHJhaWwubW9jazpNb2NrQVBJQDEyMw==` |
+
+> Only these exact credentials are accepted. See `/docs` for the interactive Authorize button.
+
+Bearer token shortcut also works: `Authorization: Bearer MockAPI@123`
+
+Override credentials via environment variables:
+```
+TESTRAIL_MOCK_EMAIL=admin@testrail.mock
+TESTRAIL_MOCK_API_KEY=MockAPI@123
+```
+
+---
 
 ## API Endpoints
 
-### Core TestRail APIs
+All endpoints support both the real TestRail URL pattern (`index.php?/api/v2/`) and the clean REST path (`/api/v2/`).
+
+### Projects
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/index.php?/api/v2/add_case/{section_id}` | Create test case |
-| `GET` | `/index.php?/api/v2/get_case/{case_id}` | Get test case |
-| `POST` | `/index.php?/api/v2/update_case/{case_id}` | Update test case |
-| `DELETE` | `/index.php?/api/v2/delete_case/{case_id}` | Delete test case |
-| `GET` | `/index.php?/api/v2/get_cases/{project_id}` | Get all test cases |
-| `DELETE` | `/index.php?/api/v2/cases/bulk` | Bulk delete test cases |
-| `POST` | `/index.php?/api/v2/add_result/{case_id}` | Add test result |
-| `GET` | `/index.php?/api/v2/get_results/{case_id}` | Get test results |
-| `POST` | `/index.php?/api/v2/add_run/{project_id}` | Create test run |
-| `GET` | `/index.php?/api/v2/get_run/{run_id}` | Get test run |
+| `GET` | `/index.php?/api/v2/get_projects` | List all projects |
+| `GET` | `/index.php?/api/v2/get_project/{project_id}` | Get project |
+| `POST` | `/index.php?/api/v2/add_project` | Create project |
+| `POST` | `/index.php?/api/v2/update_project/{project_id}` | Update project |
+| `POST` | `/index.php?/api/v2/delete_project/{project_id}` | Delete project |
 
-### Web Interface
+### Sections
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/ui` | Test case overview |
-| `GET` | `/ui/case/{case_id}` | Test case detail view |
-| `GET` | `/ui/run/{run_id}` | Test run detail view |
-| `POST` | `/ui/case/create` | Create test case via web form |
-| `POST` | `/ui/run/create` | Create test run via web form |
+| `GET` | `/index.php?/api/v2/get_sections/{project_id}` | List sections |
+| `GET` | `/index.php?/api/v2/get_section/{section_id}` | Get section |
+| `POST` | `/index.php?/api/v2/add_section/{project_id}` | Create section |
+| `POST` | `/index.php?/api/v2/update_section/{section_id}` | Update section |
+| `POST` | `/index.php?/api/v2/delete_section/{section_id}` | Delete section |
+
+### Test Cases
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/index.php?/api/v2/get_cases/{project_id}` | List cases (paginated) |
+| `GET` | `/index.php?/api/v2/get_case/{case_id}` | Get case |
+| `POST` | `/index.php?/api/v2/add_case/{section_id}` | Create case |
+| `POST` | `/index.php?/api/v2/update_case/{case_id}` | Update case |
+| `POST` | `/index.php?/api/v2/delete_case/{case_id}` | Delete case |
+| `POST` | `/index.php?/api/v2/delete_cases/{project_id}` | Bulk delete cases |
+| `POST` | `/index.php?/api/v2/copy_cases_to_section/{section_id}` | Copy cases |
+| `POST` | `/index.php?/api/v2/move_cases_to_section/{section_id}` | Move cases |
+
+### Test Runs
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/index.php?/api/v2/get_runs/{project_id}` | List runs |
+| `GET` | `/index.php?/api/v2/get_run/{run_id}` | Get run |
+| `POST` | `/index.php?/api/v2/add_run/{project_id}` | Create run |
+| `POST` | `/index.php?/api/v2/update_run/{run_id}` | Update run |
+| `POST` | `/index.php?/api/v2/close_run/{run_id}` | Close run |
+| `POST` | `/index.php?/api/v2/delete_run/{run_id}` | Delete run |
+
+### Test Results
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/index.php?/api/v2/get_results/{test_id}` | Get results for a test |
+| `GET` | `/index.php?/api/v2/get_results_for_case/{run_id}/{case_id}` | Results for case in run |
+| `GET` | `/index.php?/api/v2/get_results_for_run/{run_id}` | All results for a run |
+| `POST` | `/index.php?/api/v2/add_result/{test_id}` | Add single result |
+| `POST` | `/index.php?/api/v2/add_result_for_case/{run_id}/{case_id}` | Add result for case in run |
+| `POST` | `/index.php?/api/v2/add_results/{run_id}` | Bulk add by test_id |
+| `POST` | `/index.php?/api/v2/add_results_for_cases/{run_id}` | Bulk add by case_id ⭐ |
+
+### Utilities
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/index.php?/api/v2/get_statuses` | All result statuses |
+| `GET` | `/index.php?/api/v2/get_case_types` | All case types |
+| `GET` | `/index.php?/api/v2/get_priorities` | All priorities |
+| `GET` | `/index.php?/api/v2/get_templates/{project_id}` | All templates |
 
 ### System
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/docs` | Swagger API documentation |
-| `POST` | `/admin/reset` | Reset database with seed data |
+| `GET` | `/health` | Health check (no auth) |
+| `GET` | `/docs` | Swagger UI |
+| `GET` | `/ui` | Web interface |
+
+---
 
 ## Usage Examples
 
-### Create Test Case
-
 ```bash
-curl -X POST "http://localhost:4002/index.php?/api/v2/add_case/1" \
-  -H "Authorization: Bearer your-token" \
+# Get all cases for project 1
+curl -u "admin@testrail.mock:MockAPI@123" \
+  "http://localhost:4002/index.php?/api/v2/get_cases/1"
+
+# Create a test case
+curl -X POST -u "admin@testrail.mock:MockAPI@123" \
   -H "Content-Type: application/json" \
+  "http://localhost:4002/index.php?/api/v2/add_case/1" \
   -d '{
-    "title": "Login should succeed with valid credentials",
-    "template_id": 1,
+    "title": "Login with valid credentials",
     "type_id": 1,
-    "priority_id": 2,
-    "estimate": "5m",
-    "custom_steps": "1. Navigate to login page\n2. Enter valid credentials\n3. Click login"
+    "priority_id": 3,
+    "custom_preconds": "User account exists",
+    "custom_steps_separated": [
+      {"content": "Open login page", "expected": "Page loads"},
+      {"content": "Enter credentials", "expected": "Fields accepted"},
+      {"content": "Click Login", "expected": "Dashboard shown"}
+    ]
   }'
-```
 
-### Get Test Case
-
-```bash
-curl -X GET "http://localhost:4002/index.php?/api/v2/get_case/1" \
-  -H "Authorization: Bearer your-token"
-```
-
-### Delete Test Case
-
-```bash
-curl -X DELETE "http://localhost:4002/api/v2/case/1" \
-  -H "Authorization: Bearer your-token"
-```
-
-### Bulk Delete Test Cases
-
-```bash
-curl -X DELETE "http://localhost:4002/api/v2/cases/bulk" \
-  -H "Authorization: Bearer your-token" \
+# Add a result for a case in a run (most common automation use case)
+curl -X POST -u "admin@testrail.mock:MockAPI@123" \
   -H "Content-Type: application/json" \
-  -d '{
-    "case_ids": [1, 2, 3, 4, 5]
-  }'
-```
+  "http://localhost:4002/index.php?/api/v2/add_result_for_case/1/1" \
+  -d '{"status_id": 1, "comment": "Passed", "elapsed": "45s"}'
 
-### Add Test Result
-
-```bash
-curl -X POST "http://localhost:4002/index.php?/api/v2/add_result/1" \
-  -H "Authorization: Bearer your-token" \
+# Bulk add results by case_id
+curl -X POST -u "admin@testrail.mock:MockAPI@123" \
   -H "Content-Type: application/json" \
+  "http://localhost:4002/index.php?/api/v2/add_results_for_cases/1" \
   -d '{
-    "status_id": 1,
-    "comment": "Test passed successfully",
-    "elapsed": "3m",
-    "defects": "BUG-123"
+    "results": [
+      {"case_id": 1, "status_id": 1, "comment": "Pass", "elapsed": "12s"},
+      {"case_id": 2, "status_id": 5, "comment": "Fail – button not found"}
+    ]
   }'
 ```
 
-### Create Test Run
+---
 
-```bash
-curl -X POST "http://localhost:4002/index.php?/api/v2/add_run/1" \
-  -H "Authorization: Bearer your-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Smoke Test Run",
-    "description": "Basic smoke testing",
-    "case_ids": [1, 2, 3]
-  }'
-```
+## Status / Type / Priority Reference
 
-## Configuration
+### Status IDs
+| ID | Name |
+|----|------|
+| 1 | Passed |
+| 2 | Blocked |
+| 3 | Untested |
+| 4 | Retest |
+| 5 | Failed |
 
-Environment variables:
+### Type IDs
+| ID | Name |
+|----|------|
+| 1 | Other |
+| 2 | Automated |
+| 3 | Functionality |
+| 4 | Regression |
+| 5 | Smoke |
+| 6 | UI |
+| 7 | Performance |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `4002` | Server port |
-| `HOST` | `0.0.0.0` | Server host |
-| `MOCK_AUTH_REQUIRED` | `true` | Enable/disable auth |
-| `TESTRAIL_PROJECT_ID` | `1` | Default project ID |
-| `DATABASE_URL` | `sqlite:///./testrail.db` | Database connection |
+### Priority IDs
+| ID | Name |
+|----|------|
+| 1 | Low |
+| 2 | Medium |
+| 3 | High |
+| 4 | Critical |
 
-## Test Status IDs
-
-The service uses standard TestRail status IDs:
-
-| Status ID | Status Name | Description |
-|-----------|-------------|-------------|
-| `1` | Passed | Test passed successfully |
-| `2` | Blocked | Test is blocked |
-| `3` | Untested | Test not yet executed |
-| `4` | Retest | Test needs to be retested |
-| `5` | Failed | Test failed |
-
-## Default Data
-
-The service comes with pre-seeded sample test cases:
-
-- **Case 1**: "User Login - Valid Credentials"
-- **Case 2**: "User Login - Invalid Credentials"  
-- **Case 3**: "Password Reset Functionality"
-- **Case 4**: "User Registration Process"
-
-## API Mapping to Real TestRail
-
-| Mock Endpoint | Real TestRail Endpoint | Notes |
-|---------------|----------------------|-------|
-| `POST /index.php?/api/v2/add_case/{section_id}` | `POST https://your-domain.testrail.io/index.php?/api/v2/add_case/{section_id}` | Core fields supported |
-| `GET /index.php?/api/v2/get_case/{case_id}` | `GET https://your-domain.testrail.io/index.php?/api/v2/get_case/{case_id}` | Standard response format |
-| `POST /index.php?/api/v2/add_result/{case_id}` | `POST https://your-domain.testrail.io/index.php?/api/v2/add_result/{case_id}` | Result tracking |
-| `POST /index.php?/api/v2/add_run/{project_id}` | `POST https://your-domain.testrail.io/index.php?/api/v2/add_run/{project_id}` | Test run management |
-
-## Testing
-
-Run the test suite:
-
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio
-
-# Run tests
-pytest tests/ -v
-```
+---
 
 ## Postman Collection
 
-Import the provided Postman collection for interactive testing:
+Import from the `postman-collections/` folder at the project root:
 
-- **Collection**: `TestRail_Mock_API.postman_collection.json`
-- **Environment**: `TestRail_Mock_Environment.postman_environment.json`
+| File | Description |
+|------|-------------|
+| `TestRail_Mock.postman_collection.json` | 41 requests, 8 folders, auto-capture test scripts |
+| `TestRail_Mock.postman_environment.json` | Environment with credentials and dynamic ID variables |
 
-## Web Interface
+See `POSTMAN_COLLECTION_README.md` for detailed usage instructions.
 
-Visit the web interface at:
+---
 
-- **Test Cases Overview**: http://localhost:4002/ui
-- **Specific Test Case**: http://localhost:4002/ui/case/1
-- **Test Run Details**: http://localhost:4002/ui/run/1
+## Configuration
 
-The web interface allows you to:
-- View all test cases in organized sections
-- Create new test cases via forms
-- Execute test cases and add results
-- Manage test runs and track progress
-- View execution history and statistics
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TESTRAIL_MOCK_EMAIL` | `admin@testrail.mock` | Auth email |
+| `TESTRAIL_MOCK_API_KEY` | `MockAPI@123` | Auth API key |
+| `DATABASE_URL` | `sqlite:///./testrail.db` | Database path |
 
-## Database Management
+---
 
-### Reset Database
-
-```bash
-# Option 1: API reset (requires auth)
-curl -X POST -H "Authorization: Bearer token" http://localhost:4002/admin/reset
-
-# Option 2: Delete database file (service restart required)
-rm testrail.db
-
-# Option 3: Docker volume reset
-docker compose down
-docker volume rm testrail_db
-docker compose up -d testrail-mock
-```
-
-### Inspect Database
-
-```bash
-# View tables
-sqlite3 testrail.db ".tables"
-
-# View test cases
-sqlite3 testrail.db "SELECT * FROM cases;"
-
-# View test results
-sqlite3 testrail.db "SELECT * FROM results;"
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port Already in Use**: Change the `PORT` environment variable
-2. **Database Locked**: Stop all instances and delete `testrail.db`
-3. **Auth Errors**: Set `MOCK_AUTH_REQUIRED=false` to disable auth
-
-### Logs
-
-View service logs:
-
-```bash
-# Docker Compose
-docker compose logs testrail-mock
-
-# Local development
-# Logs are printed to stdout
-```
-
-### Health Check
-
-```bash
-# Quick health check
-curl http://localhost:4002/health
-```
-
-## Development
-
-### Project Structure
+## Project Structure
 
 ```
 testrail-mock/
-├── app.py              # FastAPI application
-├── models.py           # SQLAlchemy models
-├── routes.py           # API route handlers
-├── storage.py          # Database operations
-├── templates/          # Jinja2 templates
-│   ├── index.html      # Test case overview
-│   ├── case_detail.html # Test case detail
-│   └── run_detail.html # Test run detail
-├── shared/             # Shared resources
-│   └── seed/           # Seed data
-├── tests/              # Test suite
-├── Dockerfile          # Container definition
-├── requirements.txt    # Python dependencies
-└── README.md          # This file
+├── app.py                    # FastAPI app, middleware, UI routes
+├── models.py                 # SQLAlchemy models + Pydantic schemas
+├── routes.py                 # API route handlers + auth
+├── storage.py                # DB init, migration, seeding
+├── templates/                # Jinja2 UI templates
+├── tests/
+│   └── test_api.py           # pytest test suite
+├── requirements.txt
+├── Dockerfile
+├── README.md
+└── POSTMAN_COLLECTION_README.md
 ```
 
-### Adding New Features
+---
 
-1. **New API Endpoint**: Add route to `routes.py`
-2. **Database Changes**: Update models in `models.py`
-3. **UI Changes**: Modify templates in `templates/`
-4. **Tests**: Add tests to `tests/test_api.py`
+## Running Tests
 
-## License
+```bash
+cd mock-services/testrail-mock
+source .venv/bin/activate
+pytest tests/ -v
+```
 
-This is a mock service for development and testing purposes only.
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `401 Unauthorized` | Use `admin@testrail.mock` / `MockAPI@123` |
+| `400 Bad Request` | Entity with that ID doesn't exist |
+| `422 Validation Error` | Missing required field or wrong type |
+| Port in use | Another process is on 4002 — kill it or change port |
+| Data gone after restart | Check `testrail.db` wasn't deleted |
