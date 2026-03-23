@@ -1,56 +1,16 @@
 {% extends "base.html" %}
-
-{% block title %}{{ feature_name }} - TestRail Mock{% endblock %}
+{% block title %}{{ feature_name }} – TestRail Mock{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px; margin: 2rem auto; text-align: center;">
-    <div class="card">
-        <div class="card-body" style="padding: 3rem;">
-            <div style="font-size: 4rem; color: #3498db; margin-bottom: 1rem;">
-                🚧
-            </div>
-            
-            <h2 style="color: #2c3e50; margin-bottom: 1rem;">{{ feature_name }}</h2>
-            
-            <p style="font-size: 1.1rem; color: #6c757d; margin-bottom: 2rem;">
-                {{ description }}
-            </p>
-            
-            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
-                <h4 style="color: #2c3e50; margin-bottom: 1rem;">Coming Soon!</h4>
-                <p style="color: #6c757d; margin-bottom: 0;">
-                    This feature is planned for a future release. In the meantime, you can manually create test cases 
-                    or use the API endpoints to programmatically add test cases to your project.
-                </p>
-            </div>
-            
-            <div>
-                <a href="{{ back_url }}" class="btn btn-success">Go Back</a>
-                <a href="/docs" class="btn btn-secondary">View API Docs</a>
-            </div>
-        </div>
-    </div>
-    
-    <div style="margin-top: 2rem; font-size: 0.9rem; color: #6c757d;">
-        <p>
-            <strong>Suggestion:</strong> You can contribute to this mock service by implementing this feature! 
-            Check the GitHub repository for contribution guidelines.
-        </p>
+<div class="tr-card" style="max-width:500px;margin:40px auto;text-align:center;">
+    <div class="tr-card-body" style="padding:48px 32px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--tr-gray-400)" stroke-width="1.5" style="margin-bottom:16px;">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <h2 class="fw-600" style="font-size:18px;margin-bottom:8px;">{{ feature_name }}</h2>
+        <p class="text-muted" style="margin-bottom:24px;">{{ description }}</p>
+        <p class="text-muted text-small" style="margin-bottom:24px;">This feature is a placeholder in the mock service.</p>
+        <a href="{{ back_url }}" class="btn btn-primary">← Go Back</a>
     </div>
 </div>
-
-<style>
-.container {
-    padding: 2rem;
-}
-
-.card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.btn {
-    margin: 0 0.5rem;
-    padding: 0.75rem 1.5rem;
-}
-</style>
 {% endblock %}

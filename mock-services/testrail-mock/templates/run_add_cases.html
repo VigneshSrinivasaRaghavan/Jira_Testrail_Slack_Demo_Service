@@ -1,233 +1,110 @@
 {% extends "base.html" %}
-
-{% block title %}Add Cases to Run - TestRail Mock{% endblock %}
+{% block title %}Add Cases to {{ run.name }} – TestRail Mock{% endblock %}
 
 {% block content %}
-{% set breadcrumb = [
-    {"name": "Dashboard", "url": "/ui"},
-    {"name": "Test Runs", "url": "/ui/runs"},
-    {"name": run.name, "url": "/ui/run/" + run.id|string},
-    {"name": "Add Cases", "url": ""}
-] %}
+<div class="tr-breadcrumb" style="margin:-20px -24px 16px -24px;">
+    <a href="/ui/runs">Test Runs</a>
+    <span class="sep">›</span>
+    <a href="/ui/run/{{ run.id }}">{{ run.name }}</a>
+    <span class="sep">›</span>
+    <span>Add Cases</span>
+</div>
 
-<div class="two-column">
-    <div class="main-content">
-        <div class="card">
-            <div class="card-header">
-                Add Test Cases to Run: {{ run.name }}
-            </div>
-            <div class="card-body">
-                {% if available_cases %}
-                <form method="POST" action="/ui/run/{{ run.id }}/add-cases">
-                    <!-- Filter Section -->
-                    <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-                        <div style="display: flex; gap: 1rem; align-items: end;">
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <label class="form-label">Filter by Section</label>
-                                <select id="sectionFilter" class="form-control">
-                                    <option value="">All Sections</option>
-                                    {% for section in sections %}
-                                    <option value="{{ section.id }}">{{ section.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="form-group" style="margin-bottom: 0;">
-                                <button type="button" onclick="selectAll()" class="btn btn-secondary">Select All</button>
-                                <button type="button" onclick="selectNone()" class="btn btn-secondary">Select None</button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Test Cases Selection -->
-                    <div style="max-height: 500px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 4px;">
-                        <table class="table" style="margin-bottom: 0;">
-                            <thead style="position: sticky; top: 0; background: white; z-index: 10;">
-                                <tr>
-                                    <th style="width: 50px;">
-                                        <input type="checkbox" id="selectAllCheckbox" onchange="toggleAll(this)">
-                                    </th>
-                                    <th>ID</th>
-                                    <th>Title</th>
-                                    <th>Section</th>
-                                    <th>Type</th>
-                                    <th>Priority</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for case in available_cases %}
-                                <tr data-section-id="{{ case.section_id }}">
-                                    <td>
-                                        <input type="checkbox" name="case_ids" value="{{ case.id }}" class="case-checkbox">
-                                    </td>
-                                    <td>{{ case.id }}</td>
-                                    <td>
-                                        <a href="/ui/case/{{ case.id }}" target="_blank">{{ case.title }}</a>
-                                    </td>
-                                    <td>{{ case.section.name }}</td>
-                                    <td>{{ type_names[case.type_id] }}</td>
-                                    <td>{{ priority_names[case.priority_id] }}</td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div style="margin-top: 1.5rem; text-align: right;">
-                        <a href="/ui/run/{{ run.id }}" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-success">Add Selected Cases</button>
-                    </div>
-                </form>
-                {% else %}
-                <div style="text-align: center; padding: 2rem;">
-                    <p>All available test cases have already been added to this run.</p>
-                    <a href="/ui/run/{{ run.id }}" class="btn btn-secondary">Back to Run</a>
-                </div>
-                {% endif %}
-            </div>
-        </div>
+<div class="flex items-center justify-between mb-16">
+    <h1 class="fw-600" style="font-size:18px;">Add Cases to: {{ run.name }}</h1>
+</div>
+
+<form action="/ui/run/{{ run.id }}/add-cases" method="post">
+<div class="tr-card mb-16">
+    <div class="tr-card-header">
+        <div class="tr-card-title">Filter Cases</div>
     </div>
-    
-    <div class="sidebar">
-        <h3>Run Information</h3>
-        <div style="font-size: 0.9rem;">
-            <p><strong>Run Name:</strong> {{ run.name }}</p>
-            <p><strong>Description:</strong> {{ run.description or "No description" }}</p>
-            <p><strong>Created:</strong> {{ run.created_on.strftime('%Y-%m-%d') }}</p>
-            <p><strong>Status:</strong> {{ "Completed" if run.is_completed else "In Progress" }}</p>
-        </div>
-        
-        <h3>Available Cases</h3>
-        <div style="font-size: 0.9rem; color: #6c757d;">
-            <p><strong>Total Available:</strong> {{ available_cases|length }}</p>
-            
-            {% if sections %}
-            <p style="margin-top: 1rem;"><strong>By Section:</strong></p>
-            <ul style="font-size: 0.8rem; list-style: none; padding-left: 0;">
-                {% for section in sections %}
-                {% set section_cases = available_cases|selectattr('section_id', 'equalto', section.id)|list %}
-                {% if section_cases|length > 0 %}
-                <li style="margin-bottom: 0.25rem;">
-                    <span style="color: #3498db;">{{ section.name }}</span>
-                    <span style="color: #6c757d;">({{ section_cases|length }})</span>
-                </li>
-                {% endif %}
+    <div class="tr-card-body" style="padding:12px 16px;">
+        <div class="flex gap-8 items-center">
+            <input type="text" id="search-input" placeholder="Search cases…" class="form-control" style="width:220px;padding:6px 10px;">
+            <select id="section-filter" class="form-control" style="width:160px;padding:6px 10px;">
+                <option value="">All Sections</option>
+                {% for s in sections %}
+                <option value="{{ s.id }}">{{ s.name }}</option>
                 {% endfor %}
-            </ul>
-            {% endif %}
+            </select>
+            <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;">
+                <input type="checkbox" id="select-all"> Select All
+            </label>
         </div>
-        
-        <h3>Selection Tips</h3>
-        <div style="font-size: 0.9rem; color: #6c757d;">
-            <ul style="font-size: 0.8rem;">
-                <li>Use section filter to focus on specific areas</li>
-                <li>Select All/None buttons for bulk operations</li>
-                <li>Click test case titles to preview in new tab</li>
-                <li>Cases already in run are excluded</li>
-            </ul>
-        </div>
-        
-        <h3>Quick Actions</h3>
-        <ul>
-            <li><a href="/ui/run/{{ run.id }}" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Back to Run</a></li>
-            <li><a href="/ui/cases/create" class="btn" style="margin-bottom: 0.5rem;">Create New Case</a></li>
-        </ul>
     </div>
 </div>
 
+<div class="tr-card">
+    {% if available_cases %}
+    <table class="tr-table" id="cases-table">
+        <thead>
+            <tr>
+                <th style="width:36px;"><input type="checkbox" id="header-check"></th>
+                <th style="width:60px;">ID</th>
+                <th>Title</th>
+                <th>Section</th>
+                <th>Priority</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for case in available_cases %}
+        <tr data-section="{{ case.section_id }}" data-title="{{ case.title|lower }}">
+            <td>
+                <input type="checkbox" name="case_ids" value="{{ case.id }}" class="case-checkbox">
+            </td>
+            <td class="text-muted">C{{ case.id }}</td>
+            <td>{{ case.title }}</td>
+            <td class="text-muted">
+                {% for s in sections %}{% if s.id == case.section_id %}{{ s.name }}{% endif %}{% endfor %}
+            </td>
+            <td>
+                {% set pnames = {1:'critical',2:'high',3:'medium',4:'low'} %}
+                <span class="priority-{{ pnames.get(case.priority_id,'medium') }}">
+                    {{ priority_names.get(case.priority_id, '—') }}
+                </span>
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:32px;">
+        <p>All test cases are already in this run.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% if available_cases %}
+<div class="flex gap-8 mt-16">
+    <button type="submit" class="btn btn-primary">Add Selected Cases</button>
+    <a href="/ui/run/{{ run.id }}" class="btn btn-secondary">Cancel</a>
+</div>
+{% endif %}
+</form>
+
 <script>
-// Section filtering
-document.getElementById('sectionFilter').addEventListener('change', function() {
-    const selectedSection = this.value;
-    const rows = document.querySelectorAll('tbody tr');
-    
-    rows.forEach(row => {
-        if (selectedSection === '' || row.dataset.sectionId === selectedSection) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
+const searchInput = document.getElementById('search-input');
+const sectionFilter = document.getElementById('section-filter');
+const selectAll = document.getElementById('select-all');
+
+function filterRows() {
+    const q = searchInput.value.toLowerCase();
+    const sec = sectionFilter.value;
+    document.querySelectorAll('#cases-table tbody tr').forEach(tr => {
+        const matchTitle = !q || tr.dataset.title.includes(q);
+        const matchSec   = !sec || tr.dataset.section === sec;
+        tr.style.display = (matchTitle && matchSec) ? '' : 'none';
     });
-    
-    // Update select all checkbox
-    updateSelectAllCheckbox();
-});
-
-// Select all visible cases
-function selectAll() {
-    const visibleCheckboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) .case-checkbox');
-    visibleCheckboxes.forEach(cb => cb.checked = true);
-    updateSelectAllCheckbox();
 }
 
-// Select no cases
-function selectNone() {
-    const checkboxes = document.querySelectorAll('.case-checkbox');
-    checkboxes.forEach(cb => cb.checked = false);
-    updateSelectAllCheckbox();
-}
+searchInput.addEventListener('input', filterRows);
+sectionFilter.addEventListener('change', filterRows);
 
-// Toggle all visible cases
-function toggleAll(masterCheckbox) {
-    const visibleCheckboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) .case-checkbox');
-    visibleCheckboxes.forEach(cb => cb.checked = masterCheckbox.checked);
-}
-
-// Update master checkbox state
-function updateSelectAllCheckbox() {
-    const visibleCheckboxes = document.querySelectorAll('tbody tr:not([style*="display: none"]) .case-checkbox');
-    const checkedVisible = document.querySelectorAll('tbody tr:not([style*="display: none"]) .case-checkbox:checked');
-    const masterCheckbox = document.getElementById('selectAllCheckbox');
-    
-    if (visibleCheckboxes.length === 0) {
-        masterCheckbox.indeterminate = false;
-        masterCheckbox.checked = false;
-    } else if (checkedVisible.length === visibleCheckboxes.length) {
-        masterCheckbox.indeterminate = false;
-        masterCheckbox.checked = true;
-    } else if (checkedVisible.length > 0) {
-        masterCheckbox.indeterminate = true;
-    } else {
-        masterCheckbox.indeterminate = false;
-        masterCheckbox.checked = false;
-    }
-}
-
-// Listen for individual checkbox changes
-document.addEventListener('change', function(e) {
-    if (e.target.classList.contains('case-checkbox')) {
-        updateSelectAllCheckbox();
-    }
-});
-
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    updateSelectAllCheckbox();
+selectAll.addEventListener('change', function() {
+    document.querySelectorAll('.case-checkbox').forEach(cb => {
+        if (cb.closest('tr').style.display !== 'none') cb.checked = this.checked;
+    });
 });
 </script>
-
-<style>
-.table th {
-    border-bottom: 2px solid #dee2e6;
-}
-
-.table td {
-    vertical-align: middle;
-}
-
-.case-checkbox {
-    transform: scale(1.2);
-}
-
-.form-group {
-    margin-bottom: 1rem;
-}
-
-.btn {
-    margin-left: 0.5rem;
-}
-
-.btn:first-child {
-    margin-left: 0;
-}
-</style>
 {% endblock %}

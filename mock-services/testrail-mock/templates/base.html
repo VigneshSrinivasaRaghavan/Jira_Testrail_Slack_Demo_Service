@@ -5,397 +5,455 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}TestRail Mock{% endblock %}</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --tr-blue:       #1f6fdb;
+            --tr-blue-dark:  #1558b0;
+            --tr-green:      #14a347;
+            --tr-red:        #d93025;
+            --tr-orange:     #e67e22;
+            --tr-gray-100:   #f4f5f7;
+            --tr-gray-200:   #e8eaed;
+            --tr-gray-400:   #bdc1c6;
+            --tr-gray-600:   #6c737a;
+            --tr-gray-800:   #3c4043;
+            --tr-nav-bg:     #1a2332;
+            --tr-nav-text:   #c9d1dc;
+            --tr-nav-hover:  #ffffff;
+            --tr-sidebar-bg: #f4f5f7;
+            --tr-border:     #dfe1e5;
+            --tr-white:      #ffffff;
+            --tr-shadow:     0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+            --tr-radius:     4px;
+            --tr-font:       -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
-        
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f8f9fa;
-            color: #333;
-            line-height: 1.6;
+            font-family: var(--tr-font);
+            font-size: 13px;
+            color: var(--tr-gray-800);
+            background: var(--tr-gray-100);
+            min-height: 100vh;
         }
-        
-        .header {
-            background: #2c3e50;
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .header h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .header .subtitle {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            margin-top: 0.25rem;
-        }
-        
-        .nav {
-            background: #34495e;
-            padding: 0 2rem;
-        }
-        
-        .nav ul {
-            list-style: none;
+
+        /* ── Top Header ── */
+        .tr-topbar {
+            background: var(--tr-nav-bg);
+            height: 44px;
             display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 24px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,.3);
         }
-        
-        .nav li {
-            margin-right: 2rem;
-        }
-        
-        .nav a {
-            color: #ecf0f1;
+
+        .tr-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             text-decoration: none;
-            padding: 1rem 0;
-            display: block;
-            transition: color 0.2s;
+            color: var(--tr-nav-text);
+            font-weight: 700;
+            font-size: 15px;
+            letter-spacing: .3px;
+            white-space: nowrap;
         }
-        
-        .nav a:hover {
-            color: #3498db;
-        }
-        
-        .nav a.active {
-            color: #3498db;
-            border-bottom: 2px solid #3498db;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-        
-        .breadcrumb {
-            background: white;
-            padding: 1rem 2rem;
-            border-bottom: 1px solid #e9ecef;
-            font-size: 0.9rem;
-        }
-        
-        .breadcrumb a {
-            color: #3498db;
+        .tr-logo svg { width: 22px; height: 22px; fill: var(--tr-blue); }
+
+        .tr-topnav { display: flex; gap: 2px; flex: 1; }
+        .tr-topnav a {
+            color: var(--tr-nav-text);
             text-decoration: none;
+            padding: 0 12px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            font-size: 13px;
+            border-bottom: 2px solid transparent;
+            transition: color .15s, border-color .15s;
         }
-        
-        .breadcrumb a:hover {
-            text-decoration: underline;
+        .tr-topnav a:hover  { color: var(--tr-nav-hover); }
+        .tr-topnav a.active { color: var(--tr-nav-hover); border-bottom-color: var(--tr-blue); }
+
+        .tr-topbar-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--tr-gray-400);
+            font-size: 12px;
         }
-        
-        .breadcrumb span {
-            color: #6c757d;
-            margin: 0 0.5rem;
-        }
-        
-        .card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 1.5rem;
-        }
-        
-        .card-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #e9ecef;
+        .tr-badge-api {
+            background: var(--tr-blue);
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
             font-weight: 600;
-            font-size: 1.1rem;
         }
-        
-        .card-body {
-            padding: 1.5rem;
+
+        /* ── Breadcrumb ── */
+        .tr-breadcrumb {
+            background: var(--tr-white);
+            border-bottom: 1px solid var(--tr-border);
+            padding: 8px 24px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
-        
-        .btn {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            background: #3498db;
-            color: white;
+        .tr-breadcrumb a { color: var(--tr-blue); text-decoration: none; }
+        .tr-breadcrumb a:hover { text-decoration: underline; }
+        .tr-breadcrumb .sep { color: var(--tr-gray-400); }
+
+        /* ── Page layout ── */
+        .tr-page { display: flex; min-height: calc(100vh - 44px); }
+
+        .tr-sidebar {
+            width: 220px;
+            background: var(--tr-white);
+            border-right: 1px solid var(--tr-border);
+            flex-shrink: 0;
+            padding: 16px 0;
+        }
+        .tr-sidebar-section { margin-bottom: 8px; }
+        .tr-sidebar-title {
+            padding: 4px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--tr-gray-600);
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .tr-sidebar a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 16px;
             text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background-color 0.2s;
+            color: var(--tr-gray-800);
+            font-size: 13px;
+            border-left: 3px solid transparent;
+            transition: background .1s, border-color .1s;
         }
-        
-        .btn:hover {
-            background: #2980b9;
+        .tr-sidebar a:hover { background: var(--tr-gray-100); }
+        .tr-sidebar a.active { background: #e8f0fe; border-left-color: var(--tr-blue); color: var(--tr-blue); font-weight: 600; }
+        .tr-sidebar-count {
+            margin-left: auto;
+            background: var(--tr-gray-200);
+            color: var(--tr-gray-600);
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 10px;
+            font-weight: 600;
         }
-        
-        .btn-success {
-            background: #27ae60;
+        .tr-sidebar a.active .tr-sidebar-count { background: #c2d3f7; color: var(--tr-blue); }
+
+        .tr-main { flex: 1; overflow-x: hidden; }
+        .tr-content { padding: 20px 24px; max-width: 1400px; }
+
+        /* ── Cards ── */
+        .tr-card {
+            background: var(--tr-white);
+            border: 1px solid var(--tr-border);
+            border-radius: var(--tr-radius);
+            box-shadow: var(--tr-shadow);
+            margin-bottom: 16px;
         }
-        
-        .btn-success:hover {
-            background: #229954;
+        .tr-card-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--tr-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
-        
-        .btn-danger {
-            background: #e74c3c;
-        }
-        
-        .btn-danger:hover {
-            background: #c0392b;
-        }
-        
-        .btn-secondary {
-            background: #95a5a6;
-        }
-        
-        .btn-secondary:hover {
-            background: #7f8c8d;
-        }
-        
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-        
-        .table th,
-        .table td {
-            padding: 0.75rem;
+        .tr-card-title { font-weight: 600; font-size: 14px; flex: 1; }
+        .tr-card-body { padding: 16px; }
+
+        /* ── Tables ── */
+        .tr-table { width: 100%; border-collapse: collapse; }
+        .tr-table th {
+            background: var(--tr-gray-100);
+            border-bottom: 1px solid var(--tr-border);
+            padding: 8px 12px;
             text-align: left;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .table th {
-            background: #f8f9fa;
+            font-size: 11px;
             font-weight: 600;
-            color: #495057;
+            color: var(--tr-gray-600);
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            white-space: nowrap;
         }
-        
-        .table tr:hover {
-            background: #f8f9fa;
+        .tr-table td {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--tr-border);
+            vertical-align: middle;
+            font-size: 13px;
         }
-        
-        .status-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.8rem;
+        .tr-table tbody tr:hover { background: #f8f9ff; }
+        .tr-table tbody tr:last-child td { border-bottom: none; }
+
+        /* ── Status badges ── */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .badge::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; }
+
+        .badge-passed    { background: #e6f4ea; color: #137333; }
+        .badge-passed::before { background: var(--tr-green); }
+        .badge-failed    { background: #fce8e6; color: #c5221f; }
+        .badge-failed::before { background: var(--tr-red); }
+        .badge-blocked   { background: #fef7e0; color: #a16207; }
+        .badge-blocked::before { background: var(--tr-orange); }
+        .badge-retest    { background: #e8f0fe; color: #1a73e8; }
+        .badge-retest::before { background: var(--tr-blue); }
+        .badge-untested  { background: var(--tr-gray-200); color: var(--tr-gray-600); }
+        .badge-untested::before { background: var(--tr-gray-400); }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            font-size: 13px;
             font-weight: 500;
+            border-radius: var(--tr-radius);
+            border: 1px solid transparent;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background .15s, border-color .15s;
         }
-        
-        .status-passed {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .status-failed {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status-blocked {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .status-untested {
-            background: #e2e3e5;
-            color: #383d41;
-        }
-        
-        .status-retest {
-            background: #cce7ff;
-            color: #004085;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-        
+        .btn-primary { background: var(--tr-blue); color: #fff; border-color: var(--tr-blue); }
+        .btn-primary:hover { background: var(--tr-blue-dark); border-color: var(--tr-blue-dark); }
+        .btn-secondary { background: #fff; color: var(--tr-gray-800); border-color: var(--tr-border); }
+        .btn-secondary:hover { background: var(--tr-gray-100); }
+        .btn-danger { background: #fff; color: var(--tr-red); border-color: var(--tr-red); }
+        .btn-danger:hover { background: #fce8e6; }
+        .btn-success { background: var(--tr-green); color: #fff; border-color: var(--tr-green); }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-xs { padding: 2px 7px; font-size: 11px; }
+
+        /* ── Forms ── */
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: 500; font-size: 13px; }
+        .form-label .required { color: var(--tr-red); margin-left: 2px; }
         .form-control {
             width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 0.9rem;
+            padding: 7px 10px;
+            border: 1px solid var(--tr-border);
+            border-radius: var(--tr-radius);
+            font-size: 13px;
+            font-family: var(--tr-font);
+            color: var(--tr-gray-800);
+            background: #fff;
+            transition: border-color .15s, box-shadow .15s;
         }
-        
         .form-control:focus {
             outline: none;
-            border-color: #3498db;
-            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+            border-color: var(--tr-blue);
+            box-shadow: 0 0 0 3px rgba(31,111,219,.15);
         }
-        
-        textarea.form-control {
-            resize: vertical;
-            min-height: 100px;
-        }
-        
-        .alert {
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-        }
-        
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        
-        .sidebar {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 1.5rem;
-        }
-        
-        .sidebar h3 {
-            margin-bottom: 1rem;
-            color: #2c3e50;
-            font-size: 1.1rem;
-        }
-        
-        .sidebar ul {
-            list-style: none;
-        }
-        
-        .sidebar li {
-            margin-bottom: 0.5rem;
-        }
-        
-        .sidebar a {
-            color: #3498db;
-            text-decoration: none;
-            display: block;
-            padding: 0.5rem;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-        
-        .sidebar a:hover {
-            background: #f8f9fa;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        textarea.form-control { resize: vertical; min-height: 90px; }
+        select.form-control { cursor: pointer; }
+
+        /* ── Stats grid ── */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stat-tile {
+            background: var(--tr-white);
+            border: 1px solid var(--tr-border);
+            border-radius: var(--tr-radius);
+            padding: 14px 16px;
             text-align: center;
         }
-        
-        .stat-number {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #2c3e50;
+        .stat-num { font-size: 28px; font-weight: 700; color: var(--tr-gray-800); line-height: 1; }
+        .stat-label { color: var(--tr-gray-600); font-size: 12px; margin-top: 4px; }
+
+        /* ── Progress bar ── */
+        .tr-progress { height: 6px; background: var(--tr-gray-200); border-radius: 3px; overflow: hidden; display: flex; }
+        .tr-progress-fill { height: 100%; border-radius: 3px; }
+
+        /* ── Misc ── */
+        .text-muted { color: var(--tr-gray-600); }
+        .text-small { font-size: 12px; }
+        .fw-600 { font-weight: 600; }
+        .mt-8  { margin-top: 8px; }
+        .mt-16 { margin-top: 16px; }
+        .mb-8  { margin-bottom: 8px; }
+        .mb-16 { margin-bottom: 16px; }
+        .flex  { display: flex; }
+        .gap-8 { gap: 8px; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .flex-wrap { flex-wrap: wrap; }
+
+        .priority-critical { color: #c5221f; font-weight: 600; }
+        .priority-high     { color: #e67e22; font-weight: 600; }
+        .priority-medium   { color: #1a73e8; }
+        .priority-low      { color: var(--tr-gray-600); }
+
+        .tr-tag {
+            display: inline-block;
+            background: var(--tr-gray-100);
+            border: 1px solid var(--tr-border);
+            border-radius: 3px;
+            padding: 1px 7px;
+            font-size: 11px;
+            color: var(--tr-gray-600);
         }
-        
-        .stat-label {
-            color: #6c757d;
-            font-size: 0.9rem;
-            margin-top: 0.5rem;
+
+        /* ── Pagination ── */
+        .pagination { display: flex; gap: 4px; align-items: center; }
+        .page-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px; height: 28px;
+            border: 1px solid var(--tr-border);
+            border-radius: var(--tr-radius);
+            font-size: 12px;
+            text-decoration: none;
+            color: var(--tr-gray-800);
+            background: #fff;
         }
-        
-        .two-column {
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 2rem;
-        }
-        
+        .page-btn:hover { background: var(--tr-gray-100); }
+        .page-btn.active { background: var(--tr-blue); color: #fff; border-color: var(--tr-blue); }
+        .page-btn.disabled { color: var(--tr-gray-400); cursor: default; pointer-events: none; }
+
+        /* ── Alert ── */
+        .alert { padding: 10px 14px; border-radius: var(--tr-radius); margin-bottom: 12px; font-size: 13px; }
+        .alert-success { background: #e6f4ea; border: 1px solid #ceead6; color: #137333; }
+        .alert-error   { background: #fce8e6; border: 1px solid #f5c6c3; color: #c5221f; }
+        .alert-info    { background: #e8f0fe; border: 1px solid #c5d5f7; color: #1a5fb4; }
+
+        /* ── Steps table ── */
+        .steps-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .steps-table th { background: #f8f9ff; padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 600; color: var(--tr-gray-600); border: 1px solid var(--tr-border); text-transform: uppercase; }
+        .steps-table td { padding: 8px 10px; border: 1px solid var(--tr-border); font-size: 13px; vertical-align: top; }
+        .steps-table .step-num { width: 36px; text-align: center; color: var(--tr-gray-600); font-weight: 600; background: var(--tr-gray-100); }
+
+        /* ── Empty state ── */
+        .empty-state { text-align: center; padding: 48px 24px; color: var(--tr-gray-600); }
+        .empty-state svg { width: 48px; height: 48px; fill: var(--tr-gray-400); margin-bottom: 12px; }
+        .empty-state h3 { font-size: 16px; color: var(--tr-gray-800); margin-bottom: 6px; }
+        .empty-state p { font-size: 13px; margin-bottom: 16px; }
+
         @media (max-width: 768px) {
-            .two-column {
-                grid-template-columns: 1fr;
-            }
-            
-            .nav ul {
-                flex-direction: column;
-            }
-            
-            .nav li {
-                margin-right: 0;
-            }
-            
-            .stats {
-                grid-template-columns: 1fr;
-            }
+            .tr-sidebar { display: none; }
+            .tr-content { padding: 12px 16px; }
+            .stat-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>TestRail Mock Service</h1>
-        <div class="subtitle">Test Case Management & Execution Tracking</div>
-    </div>
-    
-    <nav class="nav">
-        <ul>
-            <li><a href="/ui" class="{% if request.url.path == '/ui' %}active{% endif %}">Dashboard</a></li>
-            <li><a href="/ui/cases" class="{% if '/cases' in request.url.path %}active{% endif %}">Test Cases</a></li>
-            <li><a href="/ui/runs" class="{% if '/runs' in request.url.path %}active{% endif %}">Test Runs</a></li>
-            <li><a href="/docs" target="_blank">API Docs</a></li>
-        </ul>
+
+<!-- Top Navigation -->
+<header class="tr-topbar">
+    <a href="/ui" class="tr-logo">
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        TestRail
+    </a>
+
+    <nav class="tr-topnav">
+        <a href="/ui"       class="{% if request.url.path == '/ui' %}active{% endif %}">Dashboard</a>
+        <a href="/ui/cases" class="{% if 'cases' in request.url.path %}active{% endif %}">Test Cases</a>
+        <a href="/ui/runs"  class="{% if 'runs' in request.url.path or 'run/' in request.url.path %}active{% endif %}">Test Runs</a>
+        <a href="/docs" target="_blank">API Docs</a>
     </nav>
-    
-    {% if breadcrumb %}
-    <div class="breadcrumb">
-        {% for item in breadcrumb %}
-            {% if not loop.last %}
-                <a href="{{ item.url }}">{{ item.name }}</a>
-                <span>›</span>
-            {% else %}
-                {{ item.name }}
-            {% endif %}
-        {% endfor %}
+
+    <div class="tr-topbar-right">
+        <span class="tr-badge-api">MOCK</span>
+        <span>v2.0</span>
     </div>
-    {% endif %}
-    
-    <div class="container">
-        {% block content %}{% endblock %}
-    </div>
-    
-    <script>
-        // Simple form validation and UX improvements
-        document.addEventListener('DOMContentLoaded', function() {
-            // Auto-hide alerts after 5 seconds
-            const alerts = document.querySelectorAll('.alert');
-            alerts.forEach(alert => {
-                setTimeout(() => {
-                    alert.style.opacity = '0';
-                    setTimeout(() => alert.remove(), 300);
-                }, 5000);
-            });
-            
-            // Confirm delete actions
-            const deleteButtons = document.querySelectorAll('.btn-danger');
-            deleteButtons.forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    if (!confirm('Are you sure you want to delete this item?')) {
-                        e.preventDefault();
-                    }
-                });
-            });
+</header>
+
+{% if breadcrumb %}
+<div class="tr-breadcrumb">
+    {% for item in breadcrumb %}
+        {% if not loop.last %}
+            <a href="{{ item.url }}">{{ item.name }}</a>
+            <span class="sep">›</span>
+        {% else %}
+            <span>{{ item.name }}</span>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="tr-page">
+    <!-- Sidebar -->
+    <aside class="tr-sidebar">
+        {% block sidebar %}
+        <div class="tr-sidebar-section">
+            <div class="tr-sidebar-title">Navigation</div>
+            <a href="/ui" class="{% if request.url.path == '/ui' %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Dashboard
+            </a>
+            <a href="/ui/cases" class="{% if 'cases' in request.url.path %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                Test Cases
+            </a>
+            <a href="/ui/runs" class="{% if 'runs' in request.url.path or 'run/' in request.url.path %}active{% endif %}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Test Runs
+            </a>
+        </div>
+        <div class="tr-sidebar-section">
+            <div class="tr-sidebar-title">Actions</div>
+            <a href="/ui/cases/create">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                New Test Case
+            </a>
+            <a href="/ui/runs/create">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                New Test Run
+            </a>
+            <a href="/ui/sections/create">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                New Section
+            </a>
+        </div>
+        {% endblock %}
+    </aside>
+
+    <!-- Main Content -->
+    <main class="tr-main">
+        <div class="tr-content">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-dismiss alerts
+    document.querySelectorAll('.alert').forEach(el => {
+        setTimeout(() => { el.style.transition = 'opacity .4s'; el.style.opacity = '0';
+            setTimeout(() => el.remove(), 400); }, 5000);
+    });
+
+    // Confirm on danger forms/buttons
+    document.querySelectorAll('[data-confirm]').forEach(el => {
+        el.addEventListener('click', function(e) {
+            if (!confirm(this.dataset.confirm || 'Are you sure?')) e.preventDefault();
         });
-    </script>
+    });
+});
+</script>
+
 </body>
 </html>

@@ -1,173 +1,182 @@
 {% extends "base.html" %}
-
-{% block title %}TestRail Mock - Dashboard{% endblock %}
+{% block title %}Dashboard – TestRail Mock{% endblock %}
 
 {% block content %}
-<div class="two-column">
-    <div class="main-content">
-        <div class="card">
-            <div class="card-header">
-                Project Overview
-            </div>
-            <div class="card-body">
-                <h2>{{ project.name }}</h2>
-                <p>{{ project.description or "No description available" }}</p>
-                
-                <div class="stats">
-                    <div class="stat-card">
-                        <div class="stat-number">{{ stats.total_cases }}</div>
-                        <div class="stat-label">Total Test Cases</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">{{ stats.overall_status_counts.get(1, 0) }}</div>
-                        <div class="stat-label">Passed</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">{{ stats.overall_status_counts.get(5, 0) }}</div>
-                        <div class="stat-label">Failed</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-number">{{ stats.overall_status_counts.get(3, 0) }}</div>
-                        <div class="stat-label">Untested</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                Recent Test Results
-            </div>
-            <div class="card-body">
-                {% if recent_results %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Test Case</th>
-                            <th>Status</th>
-                            <th>Comment</th>
-                            <th>Executed</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for result in recent_results %}
-                        <tr>
-                            <td>
-                                <a href="/ui/case/{{ result.case.id }}">{{ result.case.title }}</a>
-                            </td>
-                            <td>
-                                <span class="status-badge status-{{ status_classes[result.status_id] }}">
-                                    {{ status_names[result.status_id] }}
-                                </span>
-                            </td>
-                            <td>{{ result.comment or "-" }}</td>
-                            <td>{{ result.created_on.strftime('%Y-%m-%d %H:%M') }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <p>No test results yet. <a href="/ui/cases">Start testing!</a></p>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                Test Runs
-            </div>
-            <div class="card-body">
-                {% if test_runs %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Run Name</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for run in test_runs %}
-                        <tr>
-                            <td>
-                                <a href="/ui/run/{{ run.id }}">{{ run.name }}</a>
-                            </td>
-                            <td>
-                                <span class="status-badge {% if run.is_completed %}status-passed{% else %}status-untested{% endif %}">
-                                    {{ "Completed" if run.is_completed else "In Progress" }}
-                                </span>
-                            </td>
-                            <td>{{ run.created_on.strftime('%Y-%m-%d') }}</td>
-                            <td>
-                                <a href="/ui/run/{{ run.id }}" class="btn btn-secondary">View</a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                <a href="/ui/runs/create" class="btn btn-success">Create New Run</a>
-                {% else %}
-                <p>No test runs created yet.</p>
-                <a href="/ui/runs/create" class="btn btn-success">Create First Run</a>
-                {% endif %}
-            </div>
-        </div>
+<div class="flex items-center justify-between mb-16">
+    <div>
+        <h1 class="fw-600" style="font-size:20px;">{{ project.name }}</h1>
+        <p class="text-muted text-small mt-8">{{ project.description or "Test case management project" }}</p>
     </div>
-    
-    <div class="sidebar">
-        <h3>Test Sections</h3>
-        <ul>
-            {% for section in sections %}
-            <li>
-                <a href="/ui/section/{{ section.id }}">
-                    {{ section.name }}
-                    <small>({{ section_case_counts.get(section.id, 0) }} cases)</small>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-        
-        <h3>Quick Actions</h3>
-        <ul>
-            <li><a href="/ui/cases/create" class="btn btn-success" style="margin-bottom: 0.5rem;">Add Test Case</a></li>
-            <li><a href="/ui/sections/create" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Add Section</a></li>
-            <li><a href="/ui/runs/create" class="btn" style="margin-bottom: 0.5rem;">Create Test Run</a></li>
-        </ul>
-        
-        <h3>API Information</h3>
-        <p style="font-size: 0.9rem; color: #6c757d; margin-bottom: 1rem;">
-            This TestRail mock service provides REST API endpoints compatible with TestRail v2 API.
-        </p>
-        <ul>
-            <li><a href="/docs" target="_blank">API Documentation</a></li>
-            <li><a href="/redoc" target="_blank">ReDoc</a></li>
-            <li><a href="/health">Health Check</a></li>
-        </ul>
+    <div class="flex gap-8">
+        <a href="/ui/cases/create" class="btn btn-primary">+ New Test Case</a>
+        <a href="/ui/runs/create"  class="btn btn-secondary">+ New Test Run</a>
     </div>
 </div>
 
-<style>
-.main-content {
-    min-height: 600px;
-}
+<!-- Stats Row -->
+<div class="stat-grid">
+    <div class="stat-tile">
+        <div class="stat-num">{{ stats.total_cases }}</div>
+        <div class="stat-label">Total Test Cases</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-num" style="color:var(--tr-green);">{{ stats.overall_status_counts.get(1,0) }}</div>
+        <div class="stat-label">Passed</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-num" style="color:var(--tr-red);">{{ stats.overall_status_counts.get(5,0) }}</div>
+        <div class="stat-label">Failed</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-num" style="color:var(--tr-orange);">{{ stats.overall_status_counts.get(2,0) }}</div>
+        <div class="stat-label">Blocked</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-num" style="color:var(--tr-blue);">{{ stats.overall_status_counts.get(4,0) }}</div>
+        <div class="stat-label">Retest</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-num">{{ test_runs|length }}</div>
+        <div class="stat-label">Test Runs</div>
+    </div>
+</div>
 
-.stat-card:nth-child(2) .stat-number {
-    color: #27ae60;
-}
+<div style="display:grid;grid-template-columns:1fr 340px;gap:16px;">
 
-.stat-card:nth-child(3) .stat-number {
-    color: #e74c3c;
-}
+<!-- Left: Sections & Runs -->
+<div>
+    <!-- Sections -->
+    <div class="tr-card">
+        <div class="tr-card-header">
+            <div class="tr-card-title">Test Sections</div>
+            <a href="/ui/sections/create" class="btn btn-sm btn-secondary">+ Section</a>
+        </div>
+        {% if sections %}
+        <table class="tr-table">
+            <thead>
+                <tr>
+                    <th>Section</th>
+                    <th>Description</th>
+                    <th style="text-align:right;">Cases</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for section in sections %}
+                <tr>
+                    <td>
+                        <a href="/ui/cases?section_id={{ section.id }}" style="font-weight:600;color:var(--tr-blue);text-decoration:none;">
+                            {{ section.name }}
+                        </a>
+                    </td>
+                    <td class="text-muted">{{ section.description or "—" }}</td>
+                    <td style="text-align:right;">
+                        <span class="tr-tag">{{ section_case_counts.get(section.id, 0) }}</span>
+                    </td>
+                    <td>
+                        <a href="/ui/cases?section_id={{ section.id }}" class="btn btn-xs btn-secondary">View</a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <p>No sections yet. <a href="/ui/sections/create" style="color:var(--tr-blue);">Create one</a>.</p>
+        </div>
+        {% endif %}
+    </div>
 
-.stat-card:nth-child(4) .stat-number {
-    color: #95a5a6;
-}
+    <!-- Recent Results -->
+    {% if recent_results %}
+    <div class="tr-card">
+        <div class="tr-card-header">
+            <div class="tr-card-title">Recent Test Results</div>
+        </div>
+        <table class="tr-table">
+            <thead>
+                <tr><th>Test Case</th><th>Status</th><th>Comment</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+            {% for result in recent_results %}
+                <tr>
+                    <td>
+                        <a href="/ui/case/{{ result.case_id }}" style="color:var(--tr-blue);text-decoration:none;">
+                            C{{ result.case_id }}
+                        </a>
+                    </td>
+                    <td>
+                        {% set cls = status_classes.get(result.status_id, 'untested') %}
+                        <span class="badge badge-{{ cls }}">{{ status_names.get(result.status_id, 'Unknown') }}</span>
+                    </td>
+                    <td class="text-muted">{{ (result.comment or "")[:60] }}{% if result.comment and result.comment|length > 60 %}…{% endif %}</td>
+                    <td class="text-muted text-small">{{ result.created_on.strftime('%Y-%m-%d %H:%M') if result.created_on else '—' }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
 
-small {
-    font-size: 0.8rem;
-    color: #6c757d;
-    margin-left: 0.5rem;
-}
-</style>
+<!-- Right: Test Runs -->
+<div>
+    <div class="tr-card">
+        <div class="tr-card-header">
+            <div class="tr-card-title">Test Runs</div>
+            <a href="/ui/runs/create" class="btn btn-sm btn-secondary">+ Run</a>
+        </div>
+        {% if test_runs %}
+        <div style="padding:0;">
+            {% for run in test_runs %}
+            <div style="padding:12px 16px;border-bottom:1px solid var(--tr-border);{% if loop.last %}border-bottom:none;{% endif %}">
+                <div class="flex items-center justify-between">
+                    <a href="/ui/run/{{ run.id }}" style="font-weight:600;color:var(--tr-blue);text-decoration:none;font-size:13px;">
+                        {{ run.name }}
+                    </a>
+                    {% if run.is_completed %}
+                    <span class="badge badge-passed" style="font-size:10px;">Closed</span>
+                    {% else %}
+                    <span class="badge badge-retest" style="font-size:10px;">Active</span>
+                    {% endif %}
+                </div>
+                <div class="text-muted text-small mt-8">
+                    Created {{ run.created_on.strftime('%b %d, %Y') if run.created_on else '—' }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--tr-border);">
+            <a href="/ui/runs" class="text-small" style="color:var(--tr-blue);text-decoration:none;">View all runs →</a>
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding:24px;">
+            <p>No test runs. <a href="/ui/runs/create" style="color:var(--tr-blue);">Create one</a>.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- API Quick Reference -->
+    <div class="tr-card">
+        <div class="tr-card-header">
+            <div class="tr-card-title">API Quick Reference</div>
+        </div>
+        <div class="tr-card-body" style="font-size:12px;">
+            <p class="text-muted mb-8">Auth: <code style="background:#f4f5f7;padding:1px 4px;border-radius:2px;">Authorization: Basic base64(email:api_key)</code></p>
+            <p class="fw-600 mb-8">Key Endpoints:</p>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+                <code style="font-size:11px;color:var(--tr-blue);">GET  /index.php?/api/v2/get_case/42</code>
+                <code style="font-size:11px;color:var(--tr-green);">POST /index.php?/api/v2/add_case/1</code>
+                <code style="font-size:11px;color:var(--tr-blue);">GET  /index.php?/api/v2/get_cases/1</code>
+                <code style="font-size:11px;color:var(--tr-green);">POST /index.php?/api/v2/add_result_for_case/1/42</code>
+                <code style="font-size:11px;color:var(--tr-green);">POST /index.php?/api/v2/add_results_for_cases/1</code>
+            </div>
+            <div class="mt-8">
+                <a href="/docs" target="_blank" class="btn btn-xs btn-secondary">Full API Docs →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
 {% endblock %}

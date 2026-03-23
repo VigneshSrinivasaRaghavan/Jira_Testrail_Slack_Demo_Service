@@ -1,0 +1,1327 @@
+{
+  "info": {
+    "_postman_id": "testrail-mock-collection-2026",
+    "name": "TestRail Mock API – Training Collection",
+    "description": "# TestRail Mock API – Student Training Collection\n\nUse this collection to practice interacting with the TestRail Mock Service running locally.\n\n## 🔑 Authentication\n\nEvery request uses **HTTP Basic Auth** — exactly the same as real TestRail:\n\n| Field | Value |\n|-------|-------|\n| **Email (username)** | `admin@testrail.mock` |\n| **API Key (password)** | `MockAPI@123` |\n| **Pre-built header** | `Authorization: Basic YWRtaW5AdGVzdHJhaWwubW9jazpNb2NrQVBJQDEyMw==` |\n\nAlready configured in the **TestRail Mock – Local** environment. Just select it.\n\n## 🚀 Quick Start\n1. Import **both** this file and `TestRail_Mock.postman_environment.json`\n2. Select the **TestRail Mock – Local** environment (top-right dropdown)\n3. Make sure the mock server is running on `http://localhost:4002`\n4. Run **Health Check** first\n5. Run **Get Projects** → note the `id` (default is `1`)\n6. Run requests in order: Projects → Sections → Cases → Runs → Results\n\n## 📌 URL Pattern\nAll endpoints use the exact real TestRail URL format:\n```\nGET  {{base_url}}/index.php?/api/v2/get_case/1\nPOST {{base_url}}/index.php?/api/v2/add_case/1\n```",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{email}}", "type": "string" },
+      { "key": "password", "value": "{{api_key}}", "type": "string" }
+    ]
+  },
+  "variable": [],
+  "item": [
+
+    {
+      "name": "System",
+      "description": "Health check and service metadata. No auth required.",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Service healthy', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql('healthy');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verify the TestRail Mock server is running. No auth required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"status\": \"healthy\",\n  \"database\": \"connected\",\n  \"projects\": 1\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Utilities",
+      "description": "Reference data — statuses, case types, priorities, templates.",
+      "item": [
+        {
+          "name": "Get Statuses",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_statuses",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_statuses", "value": null }]
+            },
+            "description": "Returns all test result statuses.\n1=Passed, 2=Blocked, 3=Untested, 4=Retest, 5=Failed"
+          }
+        },
+        {
+          "name": "Get Case Types",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_case_types",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_case_types", "value": null }]
+            },
+            "description": "Returns all available test case types."
+          }
+        },
+        {
+          "name": "Get Priorities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_priorities",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_priorities", "value": null }]
+            },
+            "description": "Returns all available priority levels.\n1=Low, 2=Medium, 3=High, 4=Critical"
+          }
+        },
+        {
+          "name": "Get Templates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_templates/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_templates/{{project_id}}", "value": null }]
+            },
+            "description": "Returns all available case templates for a project."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Projects",
+      "description": "CRUD operations for TestRail projects.",
+      "item": [
+        {
+          "name": "Get All Projects",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an('array');",
+                  "    if (json.length > 0) {",
+                  "        pm.environment.set('project_id', json[0].id);",
+                  "        console.log('Using project_id:', json[0].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_projects",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_projects", "value": null }]
+            },
+            "description": "Returns a list of all projects in TestRail."
+          }
+        },
+        {
+          "name": "Get Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has id and name', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_project/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_project/{{project_id}}", "value": null }]
+            },
+            "description": "Returns a single project by ID."
+          }
+        },
+        {
+          "name": "Add Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('project_id', json.id);",
+                  "    console.log('Created project_id:', json.id);",
+                  "    pm.test('Has id', () => pm.expect(json).to.have.property('id'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Training Project\",\n  \"announcement\": \"Created via Postman\",\n  \"show_announcement\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_project",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_project", "value": null }]
+            },
+            "description": "Creates a new project."
+          }
+        },
+        {
+          "name": "Update Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Name updated', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.name).to.eql('Updated Training Project');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Training Project\",\n  \"announcement\": \"Updated via Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/update_project/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/update_project/{{project_id}}", "value": null }]
+            },
+            "description": "Updates an existing project."
+          }
+        },
+        {
+          "name": "Delete Project",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/delete_project/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/delete_project/{{project_id}}", "value": null }]
+            },
+            "description": "⚠️ Permanently deletes a project. Run 'Add Project' first to avoid deleting project 1."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Sections",
+      "description": "CRUD operations for test suite sections.",
+      "item": [
+        {
+          "name": "Get Sections",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has sections array', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('sections');",
+                  "    pm.expect(json.sections).to.be.an('array');",
+                  "    if (json.sections.length > 0) {",
+                  "        pm.environment.set('section_id', json.sections[0].id);",
+                  "        console.log('Using section_id:', json.sections[0].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_sections/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_sections/{{project_id}}", "value": null }]
+            },
+            "description": "Returns all sections for a project. Response is paginated."
+          }
+        },
+        {
+          "name": "Get Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has id and name', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('name');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_section/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_section/{{section_id}}", "value": null }]
+            },
+            "description": "Returns a single section by ID."
+          }
+        },
+        {
+          "name": "Add Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('section_id', json.id);",
+                  "    console.log('Created section_id:', json.id);",
+                  "    pm.test('Has id', () => pm.expect(json).to.have.property('id'));",
+                  "    pm.test('Name matches', () => pm.expect(json.name).to.eql('Smoke Tests'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smoke Tests\",\n  \"description\": \"Critical path smoke test cases\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_section/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_section/{{project_id}}", "value": null }]
+            },
+            "description": "Creates a new section inside a project."
+          }
+        },
+        {
+          "name": "Update Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Smoke Tests – Updated\",\n  \"description\": \"Updated via Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/update_section/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/update_section/{{section_id}}", "value": null }]
+            },
+            "description": "Updates an existing section."
+          }
+        },
+        {
+          "name": "Delete Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/delete_section/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/delete_section/{{section_id}}", "value": null }]
+            },
+            "description": "⚠️ Deletes a section. Run 'Add Section' first."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Test Cases",
+      "description": "CRUD operations for test cases.",
+      "item": [
+        {
+          "name": "Get Cases",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has cases array', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('cases');",
+                  "    pm.expect(json.cases).to.be.an('array');",
+                  "    if (json.cases.length > 0) {",
+                  "        pm.environment.set('case_id', json.cases[0].id);",
+                  "        console.log('Using case_id:', json.cases[0].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_cases/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_cases/{{project_id}}", "value": null }]
+            },
+            "description": "Returns all test cases for a project. Supports query params: `section_id`, `type_id`, `priority_id`, `filter`, `limit`, `offset`."
+          }
+        },
+        {
+          "name": "Get Cases (filtered by section)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has cases array', () => pm.expect(pm.response.json()).to.have.property('cases'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_cases/{{project_id}}&section_id={{section_id}}&limit=50&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [
+                { "key": "/api/v2/get_cases/{{project_id}}", "value": null },
+                { "key": "section_id", "value": "{{section_id}}" },
+                { "key": "limit", "value": "50" },
+                { "key": "offset", "value": "0" }
+              ]
+            },
+            "description": "Returns test cases filtered by section_id with pagination."
+          }
+        },
+        {
+          "name": "Get Case",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has required fields', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('title');",
+                  "    pm.expect(json).to.have.property('section_id');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_case/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_case/{{case_id}}", "value": null }]
+            },
+            "description": "Returns a single test case by ID."
+          }
+        },
+        {
+          "name": "Add Case",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('case_id', json.id);",
+                  "    console.log('Created case_id:', json.id);",
+                  "    pm.test('Has id', () => pm.expect(json).to.have.property('id'));",
+                  "    pm.test('Title matches', () => pm.expect(json.title).to.eql('Login with valid credentials'));",
+                  "    pm.test('section_id matches', () => pm.expect(json.section_id).to.eql(parseInt(pm.environment.get('section_id'))));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Login with valid credentials\",\n  \"type_id\": 1,\n  \"priority_id\": 3,\n  \"template_id\": 1,\n  \"refs\": \"TR-101\",\n  \"estimate\": \"30s\",\n  \"custom_preconds\": \"User has a registered account\",\n  \"custom_steps_separated\": [\n    {\n      \"content\": \"Navigate to the login page\",\n      \"expected\": \"Login page is displayed\"\n    },\n    {\n      \"content\": \"Enter valid email and password\",\n      \"expected\": \"Fields are populated\"\n    },\n    {\n      \"content\": \"Click the Login button\",\n      \"expected\": \"User is redirected to the dashboard\"\n    }\n  ],\n  \"custom_expected\": \"User is logged in successfully\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_case/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_case/{{section_id}}", "value": null }]
+            },
+            "description": "Creates a new test case inside a section.\n\nKey fields:\n- `title` (required)\n- `type_id`: 1=Other, 2=Automated, 3=Functionality, etc.\n- `priority_id`: 1=Low, 2=Medium, 3=High, 4=Critical\n- `custom_preconds`: precondition text\n- `custom_steps_separated`: array of {content, expected}\n- `custom_expected`: overall expected result\n- `refs`: linked ticket (e.g. Jira issue key)\n- `estimate`: time estimate (e.g. '30s', '2m')"
+          }
+        },
+        {
+          "name": "Update Case",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Title updated', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.title).to.eql('Login with valid credentials – Updated');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Login with valid credentials – Updated\",\n  \"priority_id\": 4,\n  \"custom_preconds\": \"Updated: User has a registered account and the app is running\",\n  \"custom_steps_separated\": [\n    {\n      \"content\": \"Open the application URL\",\n      \"expected\": \"Login page loads within 2 seconds\"\n    },\n    {\n      \"content\": \"Enter admin@testrail.mock and valid password\",\n      \"expected\": \"Fields accepted\"\n    },\n    {\n      \"content\": \"Click Login\",\n      \"expected\": \"Dashboard is displayed\"\n    }\n  ],\n  \"custom_expected\": \"User is authenticated and redirected to dashboard\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/update_case/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/update_case/{{case_id}}", "value": null }]
+            },
+            "description": "Updates an existing test case. Only include fields you want to change."
+          }
+        },
+        {
+          "name": "Delete Case",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/delete_case/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/delete_case/{{case_id}}", "value": null }]
+            },
+            "description": "⚠️ Permanently deletes a test case and all its results. Run 'Add Case' first."
+          }
+        },
+        {
+          "name": "Delete Cases (bulk)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_ids\": [{{case_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/delete_cases/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/delete_cases/{{project_id}}", "value": null }]
+            },
+            "description": "⚠️ Bulk deletes test cases by ID array."
+          }
+        },
+        {
+          "name": "Copy Cases to Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array of copied cases', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_ids\": [{{case_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/copy_cases_to_section/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/copy_cases_to_section/{{section_id}}", "value": null }]
+            },
+            "description": "Copies test cases to a target section. Creates duplicates prefixed with 'Copy of'."
+          }
+        },
+        {
+          "name": "Move Cases to Section",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array of moved cases', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"case_ids\": [{{case_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/move_cases_to_section/{{section_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/move_cases_to_section/{{section_id}}", "value": null }]
+            },
+            "description": "Moves test cases to a different section (changes section_id in place)."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Test Runs",
+      "description": "CRUD operations for test runs.",
+      "item": [
+        {
+          "name": "Get Runs",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has runs array', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('runs');",
+                  "    if (json.runs.length > 0) {",
+                  "        pm.environment.set('run_id', json.runs[0].id);",
+                  "        console.log('Using run_id:', json.runs[0].id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_runs/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_runs/{{project_id}}", "value": null }]
+            },
+            "description": "Returns all test runs for a project. Add `&is_completed=0` for active runs only."
+          }
+        },
+        {
+          "name": "Get Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has required fields', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('id');",
+                  "    pm.expect(json).to.have.property('name');",
+                  "    pm.expect(json).to.have.property('is_completed');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_run/{{run_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_run/{{run_id}}", "value": null }]
+            },
+            "description": "Returns a single test run by ID."
+          }
+        },
+        {
+          "name": "Add Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('run_id', json.id);",
+                  "    console.log('Created run_id:', json.id);",
+                  "    pm.test('Has id', () => pm.expect(json).to.have.property('id'));",
+                  "    pm.test('Not completed', () => pm.expect(json.is_completed).to.be.false);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 1 – Regression Run\",\n  \"description\": \"Full regression for Sprint 1\",\n  \"include_all\": false,\n  \"case_ids\": [{{case_id}}]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_run/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_run/{{project_id}}", "value": null }]
+            },
+            "description": "Creates a new test run.\n\nKey fields:\n- `name` (required)\n- `include_all`: true = include all project cases automatically\n- `case_ids`: array of specific case IDs to include (used when include_all=false)"
+          }
+        },
+        {
+          "name": "Add Run (include all cases)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('run_id', json.id);",
+                  "    console.log('Created run_id (all cases):', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Full Project Run\",\n  \"description\": \"Includes all test cases\",\n  \"include_all\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_run/{{project_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_run/{{project_id}}", "value": null }]
+            },
+            "description": "Creates a run that automatically includes ALL test cases in the project."
+          }
+        },
+        {
+          "name": "Update Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Sprint 1 – Regression Run (Updated)\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/update_run/{{run_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/update_run/{{run_id}}", "value": null }]
+            },
+            "description": "Updates an existing test run."
+          }
+        },
+        {
+          "name": "Close Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Run is completed', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.is_completed).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/close_run/{{run_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/close_run/{{run_id}}", "value": null }]
+            },
+            "description": "Closes a test run, marking it as completed. Cannot add results after this."
+          }
+        },
+        {
+          "name": "Delete Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/delete_run/{{run_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/delete_run/{{run_id}}", "value": null }]
+            },
+            "description": "⚠️ Permanently deletes a test run."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Test Results",
+      "description": "Add and retrieve test results.",
+      "item": [
+        {
+          "name": "Get Results (by case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has results array', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property('results');",
+                  "    pm.expect(json.results).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_results/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_results/{{case_id}}", "value": null }]
+            },
+            "description": "Returns all results for a test case (test_id = case_id in this mock)."
+          }
+        },
+        {
+          "name": "Get Results for Case in Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has results array', () => pm.expect(pm.response.json()).to.have.property('results'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_results_for_case/{{run_id}}/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_results_for_case/{{run_id}}/{{case_id}}", "value": null }]
+            },
+            "description": "Returns results for a specific case within a specific run."
+          }
+        },
+        {
+          "name": "Get Results for Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has results array', () => pm.expect(pm.response.json()).to.have.property('results'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_results_for_run/{{run_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_results_for_run/{{run_id}}", "value": null }]
+            },
+            "description": "Returns all results for a test run. Supports `&status_id=1,5` filter."
+          }
+        },
+        {
+          "name": "Add Result (for test/case)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has result id', () => pm.expect(pm.response.json()).to.have.property('id'));",
+                  "pm.test('Status is Passed', () => pm.expect(pm.response.json().status_id).to.eql(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_id\": 1,\n  \"comment\": \"Test passed successfully\",\n  \"elapsed\": \"45s\",\n  \"version\": \"1.0.0\",\n  \"defects\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_result/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_result/{{case_id}}", "value": null }]
+            },
+            "description": "Adds a result for a test case.\n\nStatus IDs:\n- 1 = Passed\n- 2 = Blocked\n- 3 = Untested\n- 4 = Retest\n- 5 = Failed"
+          }
+        },
+        {
+          "name": "Add Result for Case in Run",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has result id', () => pm.expect(pm.response.json()).to.have.property('id'));",
+                  "pm.test('run_id set', () => pm.expect(pm.response.json().run_id).to.eql(parseInt(pm.environment.get('run_id'))));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status_id\": 5,\n  \"comment\": \"Failed – element not found on the page\",\n  \"elapsed\": \"1m 20s\",\n  \"version\": \"1.0.0\",\n  \"defects\": \"BUG-42\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_result_for_case/{{run_id}}/{{case_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_result_for_case/{{run_id}}/{{case_id}}", "value": null }]
+            },
+            "description": "Adds a result for a specific case within a specific run. Also updates the run entry status."
+          }
+        },
+        {
+          "name": "Add Results (bulk by test_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"results\": [\n    {\n      \"test_id\": {{case_id}},\n      \"status_id\": 1,\n      \"comment\": \"Bulk result – passed\",\n      \"elapsed\": \"30s\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_results/{{run_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_results/{{run_id}}", "value": null }]
+            },
+            "description": "Bulk adds results referenced by test_id (= case_id in this mock)."
+          }
+        },
+        {
+          "name": "Add Results for Cases (bulk by case_id)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"results\": [\n    {\n      \"case_id\": {{case_id}},\n      \"status_id\": 1,\n      \"comment\": \"Automated test passed\",\n      \"elapsed\": \"12s\",\n      \"version\": \"2.1.0\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/add_results_for_cases/{{run_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/add_results_for_cases/{{run_id}}", "value": null }]
+            },
+            "description": "⭐ Most commonly used bulk endpoint. Adds results for multiple cases in a run using case_ids.\n\nThis is what automated test frameworks (pytest-testrail, etc.) use to push results."
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "Auth – Examples",
+      "description": "Demonstrates different ways to pass the same credentials.",
+      "item": [
+        {
+          "name": "Basic Auth via header (pre-computed)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 – Basic auth accepted', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Basic {{basic_token}}",
+                "description": "Pre-computed base64(admin@testrail.mock:MockAPI@123)"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_projects",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_projects", "value": null }]
+            },
+            "description": "Uses a manually set Authorization header with the pre-computed Basic token.\n\nHeader value: `Basic YWRtaW5AdGVzdHJhaWwubW9jazpNb2NrQVBJQDEyMw==`"
+          }
+        },
+        {
+          "name": "Bearer Token auth (convenience)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200 – Bearer auth accepted', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{api_key}}", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_projects",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_projects", "value": null }]
+            },
+            "description": "Uses the API key directly as a Bearer token.\n\nHeader: `Authorization: Bearer MockAPI@123`\n\nThis is a convenience shortcut — real TestRail does NOT support Bearer. Use Basic Auth for production."
+          }
+        },
+        {
+          "name": "Wrong credentials – expect 401",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401 – wrong creds rejected', () => pm.response.to.have.status(401));",
+                  "pm.test('Error message present', () => {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.detail).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                { "key": "username", "value": "wrong@email.com", "type": "string" },
+                { "key": "password", "value": "wrongkey", "type": "string" }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/index.php?/api/v2/get_projects",
+              "host": ["{{base_url}}"],
+              "path": ["index.php"],
+              "query": [{ "key": "/api/v2/get_projects", "value": null }]
+            },
+            "description": "Demonstrates that wrong credentials return 401. Only the fixed credentials are accepted."
+          }
+        }
+      ]
+    }
+
+  ]
+}

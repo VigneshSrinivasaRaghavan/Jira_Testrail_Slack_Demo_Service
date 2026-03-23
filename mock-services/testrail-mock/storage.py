@@ -1,311 +1,225 @@
 """
 TestRail Mock Service - Storage Layer
-SQLAlchemy setup, database initialization, and seed data loading
+SQLAlchemy setup, database initialization, seed data and migrations.
 """
 
 import json
 import os
-from typing import List, Optional
-from sqlalchemy import create_engine
+from typing import Generator
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.exc import IntegrityError
 from models import (
     Base, Project, Section, Template, TestCase, TestResult, TestRun, RunEntry,
-    STATUS_NAMES, TYPE_NAMES, PRIORITY_NAMES
 )
+
 
 class TestRailStorage:
     def __init__(self, database_url: str = "sqlite:///./testrail.db"):
         self.engine = create_engine(database_url, connect_args={"check_same_thread": False})
         self.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=self.engine)
-        self.init_database()
-    
-    def init_database(self):
-        """Initialize database tables and seed data"""
         Base.metadata.create_all(bind=self.engine)
-        self.seed_initial_data()
-    
-    def get_db(self) -> Session:
-        """Get database session"""
+        self._migrate()
+        self._seed()
+
+    # ------------------------------------------------------------------
+    # Schema migrations — safe to run on every startup (idempotent)
+    # ------------------------------------------------------------------
+
+    def _migrate(self):
+        """Add new columns introduced after initial release."""
+        migrations = [
+            # TestCase new columns
+            "ALTER TABLE cases ADD COLUMN suite_id INTEGER DEFAULT 1",
+            "ALTER TABLE cases ADD COLUMN milestone_id INTEGER",
+            "ALTER TABLE cases ADD COLUMN refs VARCHAR(500)",
+            "ALTER TABLE cases ADD COLUMN estimate VARCHAR(50)",
+            # TestResult new columns
+            "ALTER TABLE results ADD COLUMN run_id INTEGER REFERENCES runs(id)",
+            "ALTER TABLE results ADD COLUMN defects VARCHAR(500)",
+            "ALTER TABLE results ADD COLUMN version VARCHAR(100)",
+            "ALTER TABLE results ADD COLUMN assignedto_id INTEGER",
+            # created_by type change not needed – keep as is
+            # TestRun new columns
+            "ALTER TABLE runs ADD COLUMN suite_id INTEGER DEFAULT 1",
+            "ALTER TABLE runs ADD COLUMN refs VARCHAR(500)",
+            "ALTER TABLE runs ADD COLUMN milestone_id INTEGER",
+            "ALTER TABLE runs ADD COLUMN assignedto_id INTEGER",
+            "ALTER TABLE runs ADD COLUMN include_all BOOLEAN DEFAULT 1",
+            "ALTER TABLE runs ADD COLUMN completed_on DATETIME",
+            "ALTER TABLE runs ADD COLUMN created_by INTEGER DEFAULT 1",
+            # Project new columns
+            "ALTER TABLE projects ADD COLUMN announcement TEXT",
+            "ALTER TABLE projects ADD COLUMN show_announcement BOOLEAN DEFAULT 0",
+            "ALTER TABLE projects ADD COLUMN is_completed BOOLEAN DEFAULT 0",
+            # Section new columns
+            "ALTER TABLE sections ADD COLUMN depth INTEGER DEFAULT 0",
+            "ALTER TABLE sections ADD COLUMN display_order INTEGER DEFAULT 1",
+        ]
+        with self.engine.connect() as conn:
+            for sql in migrations:
+                try:
+                    conn.execute(text(sql))
+                    conn.commit()
+                except Exception:
+                    # Column already exists – ignore
+                    pass
+
+    # ------------------------------------------------------------------
+    # Seed data
+    # ------------------------------------------------------------------
+
+    def _seed(self):
+        db = self.SessionLocal()
+        try:
+            if db.query(Project).first():
+                return  # Already seeded
+
+            print("Seeding initial data…")
+
+            templates = [
+                Template(id=1, name="Test Case (Text)", is_default=True),
+                Template(id=2, name="Test Case (Steps)", is_default=False),
+                Template(id=3, name="Exploratory Session", is_default=False),
+            ]
+            for t in templates:
+                db.add(t)
+
+            project = Project(
+                id=1,
+                name="Demo Project",
+                description="Sample project for TestRail mock service",
+            )
+            db.add(project)
+
+            sections = [
+                Section(id=1, project_id=1, name="Authentication",    description="Login and authentication tests"),
+                Section(id=2, project_id=1, name="User Management",   description="User creation, editing, and deletion"),
+                Section(id=3, project_id=1, name="API Tests",         description="REST API endpoint testing"),
+                Section(id=4, project_id=1, name="UI Tests",          description="User interface testing"),
+                Section(id=5, project_id=1, name="Integration",       description="Integration and end-to-end tests"),
+            ]
+            for s in sections:
+                db.add(s)
+            db.commit()
+
+            self._seed_cases(db)
+        except Exception as e:
+            db.rollback()
+            print(f"Seed error: {e}")
+        finally:
+            db.close()
+
+    def _seed_cases(self, db: Session):
+        # Try JSON seed file first
+        seed_file = "./shared/seed/sample_testcases.json"
+        if os.path.exists(seed_file):
+            try:
+                with open(seed_file) as f:
+                    data = json.load(f)
+                for c in data.get("test_cases", []):
+                    db.add(TestCase(
+                        section_id=c.get("section_id", 1),
+                        title=c["title"],
+                        template_id=c.get("template_id", 1),
+                        type_id=c.get("type_id", 1),
+                        priority_id=c.get("priority_id", 2),
+                        steps=c.get("steps"),
+                        expected_result=c.get("expected_result"),
+                        preconditions=c.get("preconditions"),
+                    ))
+                db.commit()
+                return
+            except Exception as e:
+                print(f"JSON seed error: {e}")
+
+        # Inline fallback seed
+        sample_cases = [
+            dict(section_id=1, title="Login with valid credentials", template_id=2, type_id=1, priority_id=1,
+                 steps=[{"content": "Navigate to login page", "expected": "Login form is displayed"},
+                        {"content": "Enter valid username and password", "expected": "Credentials accepted"},
+                        {"content": "Click login button", "expected": "Redirected to dashboard"}],
+                 expected_result="User successfully logs in", preconditions="User account exists"),
+            dict(section_id=1, title="Login with invalid credentials", template_id=2, type_id=1, priority_id=2,
+                 steps=[{"content": "Navigate to login page", "expected": "Login form displayed"},
+                        {"content": "Enter invalid credentials", "expected": "Error message shown"}],
+                 expected_result="Login fails with error message"),
+            dict(section_id=2, title="Create new user account", template_id=2, type_id=1, priority_id=2,
+                 steps=[{"content": "Go to User Management", "expected": "User list displayed"},
+                        {"content": "Click Add User", "expected": "Creation form opens"},
+                        {"content": "Fill in user details and submit", "expected": "User created"}],
+                 expected_result="New user appears in user list", preconditions="Admin is logged in"),
+            dict(section_id=3, title="GET /api/users returns user list", template_id=1, type_id=1, priority_id=2,
+                 expected_result="200 with JSON array of users"),
+            dict(section_id=3, title="POST /api/users creates new user", template_id=2, type_id=1, priority_id=2,
+                 steps=[{"content": "POST to /api/users with valid payload", "expected": "Request processed"},
+                        {"content": "Verify 201 status", "expected": "Returns 201 Created"}],
+                 expected_result="User object returned with ID"),
+            dict(section_id=4, title="Navigation menu visible on all pages", template_id=1, type_id=1, priority_id=3,
+                 expected_result="All nav items visible and clickable"),
+            dict(section_id=5, title="End-to-end registration and login", template_id=2, type_id=2, priority_id=2,
+                 steps=[{"content": "Register new account", "expected": "Registration succeeds"},
+                        {"content": "Login with new credentials", "expected": "Login succeeds"}],
+                 expected_result="Full onboarding flow works"),
+        ]
+
+        cases = []
+        for i, c in enumerate(sample_cases, 1):
+            tc = TestCase(**c)
+            db.add(tc)
+            cases.append(tc)
+        db.commit()
+        for tc in cases:
+            db.refresh(tc)
+
+        # Sample results
+        for case_id, status_id, comment in [
+            (cases[0].id, 1, "Passed – credentials accepted"),
+            (cases[1].id, 1, "Error message displayed correctly"),
+            (cases[2].id, 5, "Form validation failed"),
+            (cases[3].id, 1, "API response correct"),
+            (cases[4].id, 4, "Retest with updated payload"),
+        ]:
+            db.add(TestResult(case_id=case_id, status_id=status_id, comment=comment, created_by=1))
+
+        # Sample run
+        run = TestRun(project_id=1, name="Sprint 1 Regression", description="Regression for Sprint 1", suite_id=1)
+        db.add(run)
+        db.commit()
+        db.refresh(run)
+
+        for case, status, comment in [
+            (cases[0], 1, "Passed"),
+            (cases[1], 1, "Passed"),
+            (cases[2], 5, "Failed – needs investigation"),
+            (cases[3], 3, "Not yet tested"),
+            (cases[4], 3, "Not yet tested"),
+        ]:
+            db.add(RunEntry(run_id=run.id, case_id=case.id, status_id=status, comment=comment))
+
+        db.commit()
+        print("Seed data created.")
+
+    def get_db(self) -> Generator[Session, None, None]:
         db = self.SessionLocal()
         try:
             yield db
         finally:
             db.close()
-    
-    def seed_initial_data(self):
-        """Load initial seed data with robust error handling"""
-        db = self.SessionLocal()
-        try:
-            # Check if data already exists
-            existing_project = db.query(Project).first()
-            if existing_project:
-                print("Seed data already exists, skipping initialization")
-                return
-            
-            print("Initializing seed data...")
-            
-            # Create default templates with error handling
-            try:
-                templates = [
-                    Template(id=1, name="Test Case (Text)", is_default=True),
-                    Template(id=2, name="Test Case (Steps)", is_default=False),
-                    Template(id=3, name="Exploratory Session", is_default=False)
-                ]
-                for template in templates:
-                    db.add(template)
-                print("Templates created successfully")
-            except Exception as e:
-                print(f"Error creating templates: {e}")
-            
-            # Create default project with error handling
-            try:
-                project = Project(
-                    id=1,
-                    name="Demo Project",
-                    description="Sample project for TestRail mock service"
-                )
-                db.add(project)
-                print("Default project created successfully")
-            except Exception as e:
-                print(f"Error creating default project: {e}")
-            
-            # Create sections with error handling
-            try:
-                sections = [
-                    Section(id=1, project_id=1, name="Authentication", description="Login and authentication tests"),
-                    Section(id=2, project_id=1, name="User Management", description="User creation, editing, and deletion"),
-                    Section(id=3, project_id=1, name="API Tests", description="REST API endpoint testing"),
-                    Section(id=4, project_id=1, name="UI Tests", description="User interface testing"),
-                    Section(id=5, project_id=1, name="Integration", description="Integration and end-to-end tests")
-                ]
-                for section in sections:
-                    db.add(section)
-                print("Sections created successfully")
-            except Exception as e:
-                print(f"Error creating sections: {e}")
-            
-            # Commit the changes
-            db.commit()
-            print("Seed data committed successfully")
-            
-            # Load additional seed data from JSON if available
-            try:
-                self.load_seed_data_from_json(db)
-            except Exception as e:
-                print(f"Error loading JSON seed data: {e}")
-            
-        except Exception as e:
-            db.rollback()
-            print(f"Critical error seeding data: {e}")
-            # Try to ensure at least basic data exists
-            self.ensure_minimal_data(db)
-        finally:
-            db.close()
-    
-    def ensure_minimal_data(self, db: Session):
-        """Ensure minimal data exists for the service to function"""
-        try:
-            # Ensure at least one project exists
-            if not db.query(Project).first():
-                project = Project(id=1, name="Demo Project", description="Default project")
-                db.add(project)
-                
-            # Ensure at least one section exists  
-            if not db.query(Section).first():
-                section = Section(id=1, project_id=1, name="Default Section", description="Default section")
-                db.add(section)
-                
-            # Ensure at least one template exists
-            if not db.query(Template).first():
-                template = Template(id=1, name="Test Case (Text)", is_default=True)
-                db.add(template)
-                
-            db.commit()
-            print("Minimal data ensured")
-        except Exception as e:
-            print(f"Error ensuring minimal data: {e}")
-            db.rollback()
-    
-    def load_seed_data_from_json(self, db: Session):
-        """Load seed data from JSON files"""
-        try:
-            # Try to load from shared seed directory
-            seed_file = "./shared/seed/sample_testcases.json"
-            if not os.path.exists(seed_file):
-                # Create sample data directly
-                self.create_sample_test_cases(db)
-                return
-            
-            with open(seed_file, 'r') as f:
-                seed_data = json.load(f)
-            
-            # Process test cases from seed data
-            for case_data in seed_data.get('test_cases', []):
-                test_case = TestCase(
-                    section_id=case_data.get('section_id', 1),
-                    title=case_data['title'],
-                    template_id=case_data.get('template_id', 1),
-                    type_id=case_data.get('type_id', 1),
-                    priority_id=case_data.get('priority_id', 2),
-                    steps=case_data.get('steps'),
-                    expected_result=case_data.get('expected_result'),
-                    preconditions=case_data.get('preconditions')
-                )
-                db.add(test_case)
-            
-            db.commit()
-            
-        except Exception as e:
-            print(f"Error loading seed data from JSON: {e}")
-            self.create_sample_test_cases(db)
-    
-    def create_sample_test_cases(self, db: Session):
-        """Create sample test cases directly"""
-        sample_cases = [
-            {
-                "section_id": 1,
-                "title": "Login with valid credentials",
-                "template_id": 2,
-                "type_id": 1,
-                "priority_id": 1,
-                "steps": [
-                    {"step": "Navigate to login page", "expected": "Login form is displayed"},
-                    {"step": "Enter valid username and password", "expected": "Credentials are accepted"},
-                    {"step": "Click login button", "expected": "User is redirected to dashboard"}
-                ],
-                "expected_result": "User successfully logs in and sees dashboard",
-                "preconditions": "User account exists and is active"
-            },
-            {
-                "section_id": 1,
-                "title": "Login with invalid credentials",
-                "template_id": 2,
-                "type_id": 1,
-                "priority_id": 2,
-                "steps": [
-                    {"step": "Navigate to login page", "expected": "Login form is displayed"},
-                    {"step": "Enter invalid username or password", "expected": "Invalid credentials entered"},
-                    {"step": "Click login button", "expected": "Error message is shown"}
-                ],
-                "expected_result": "Login fails with appropriate error message",
-                "preconditions": "Login page is accessible"
-            },
-            {
-                "section_id": 2,
-                "title": "Create new user account",
-                "template_id": 2,
-                "type_id": 1,
-                "priority_id": 2,
-                "steps": [
-                    {"step": "Navigate to user management page", "expected": "User list is displayed"},
-                    {"step": "Click 'Add User' button", "expected": "User creation form opens"},
-                    {"step": "Fill in required user details", "expected": "Form accepts valid data"},
-                    {"step": "Submit the form", "expected": "User is created successfully"}
-                ],
-                "expected_result": "New user account is created and appears in user list",
-                "preconditions": "Admin user is logged in"
-            },
-            {
-                "section_id": 3,
-                "title": "GET /api/users endpoint returns user list",
-                "template_id": 1,
-                "type_id": 1,
-                "priority_id": 2,
-                "expected_result": "API returns 200 status with JSON array of users",
-                "preconditions": "API service is running and users exist in database"
-            },
-            {
-                "section_id": 3,
-                "title": "POST /api/users creates new user",
-                "template_id": 2,
-                "type_id": 1,
-                "priority_id": 2,
-                "steps": [
-                    {"step": "Send POST request to /api/users with valid user data", "expected": "Request is processed"},
-                    {"step": "Check response status code", "expected": "Returns 201 Created"},
-                    {"step": "Verify response body contains user data", "expected": "User object returned with ID"}
-                ],
-                "expected_result": "New user is created via API and returns user object",
-                "preconditions": "API authentication token is valid"
-            },
-            {
-                "section_id": 4,
-                "title": "Navigation menu displays all sections",
-                "template_id": 1,
-                "type_id": 1,
-                "priority_id": 3,
-                "expected_result": "All navigation menu items are visible and clickable",
-                "preconditions": "User is logged in to the application"
-            },
-            {
-                "section_id": 5,
-                "title": "End-to-end user registration and login flow",
-                "template_id": 2,
-                "type_id": 2,
-                "priority_id": 2,
-                "steps": [
-                    {"step": "Register new user account", "expected": "Registration successful"},
-                    {"step": "Verify email confirmation", "expected": "Email received and confirmed"},
-                    {"step": "Login with new credentials", "expected": "Login successful"},
-                    {"step": "Access protected resources", "expected": "User can access all features"}
-                ],
-                "expected_result": "Complete user onboarding flow works end-to-end",
-                "preconditions": "Email service is configured and working"
-            }
-        ]
-        
-        for case_data in sample_cases:
-            test_case = TestCase(**case_data)
-            db.add(test_case)
-        
-        # Add some sample test results
-        sample_results = [
-            {"case_id": 1, "status_id": 1, "comment": "Test passed successfully", "elapsed": "2m 15s"},
-            {"case_id": 2, "status_id": 1, "comment": "Error message displayed correctly", "elapsed": "1m 30s"},
-            {"case_id": 3, "status_id": 5, "comment": "Form validation failed", "elapsed": "3m 45s"},
-            {"case_id": 4, "status_id": 1, "comment": "API response correct", "elapsed": "45s"},
-            {"case_id": 5, "status_id": 4, "comment": "Need to retest with updated data", "elapsed": "2m 00s"}
-        ]
-        
-        for result_data in sample_results:
-            result = TestResult(**result_data)
-            db.add(result)
-        
-        # Create a sample test run
-        test_run = TestRun(
-            project_id=1,
-            name="Sprint 1 Regression Tests",
-            description="Regression testing for Sprint 1 features"
-        )
-        db.add(test_run)
-        db.commit()
-        
-        # Add run entries
-        run_entries = [
-            {"run_id": 1, "case_id": 1, "status_id": 1, "comment": "Passed"},
-            {"run_id": 1, "case_id": 2, "status_id": 1, "comment": "Passed"},
-            {"run_id": 1, "case_id": 3, "status_id": 5, "comment": "Failed - needs investigation"},
-            {"run_id": 1, "case_id": 4, "status_id": 3, "comment": "Not yet tested"},
-            {"run_id": 1, "case_id": 5, "status_id": 3, "comment": "Not yet tested"}
-        ]
-        
-        for entry_data in run_entries:
-            entry = RunEntry(**entry_data)
-            db.add(entry)
-        
-        db.commit()
 
-# Global storage instance
+
+# ---------------------------------------------------------------------------
+# Global singleton
+# ---------------------------------------------------------------------------
+
 storage = TestRailStorage()
 
-def get_database():
-    """Dependency to get database session with proper lifecycle management"""
+
+def get_database() -> Generator[Session, None, None]:
     db = storage.SessionLocal()
     try:
         yield db
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise e
+        raise
     finally:
         db.close()

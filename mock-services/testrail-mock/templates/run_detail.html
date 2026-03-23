@@ -1,193 +1,162 @@
 {% extends "base.html" %}
-
-{% block title %}{{ run.name }} - TestRail Mock{% endblock %}
+{% block title %}{{ run.name }} – TestRail Mock{% endblock %}
 
 {% block content %}
-{% set breadcrumb = [
-    {"name": "Dashboard", "url": "/ui"},
-    {"name": "Test Runs", "url": "/ui/runs"},
-    {"name": run.name, "url": ""}
-] %}
+<div class="tr-breadcrumb" style="margin:-20px -24px 16px -24px;">
+    <a href="/ui/runs">Test Runs</a>
+    <span class="sep">›</span>
+    <span>{{ run.name }}</span>
+</div>
 
-<div class="two-column">
-    <div class="main-content">
-        <div class="card">
-            <div class="card-header">
-                Test Run Details
-                <div style="float: right;">
-                    {% if not run.is_completed %}
-                    <a href="/ui/run/{{ run.id }}/complete" class="btn btn-success">Mark Complete</a>
-                    {% endif %}
-                    <a href="/ui/run/{{ run.id }}/edit" class="btn btn-secondary">Edit</a>
-                </div>
-            </div>
-            <div class="card-body">
-                <h2>{{ run.name }}</h2>
-                <p>{{ run.description or "No description provided" }}</p>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1.5rem 0;">
-                    <div>
-                        <strong>Status:</strong> 
-                        <span class="status-badge {% if run.is_completed %}status-passed{% else %}status-untested{% endif %}">
-                            {{ "Completed" if run.is_completed else "In Progress" }}
-                        </span><br>
-                        <strong>Created:</strong> {{ run.created_on.strftime('%Y-%m-%d %H:%M') }}
-                    </div>
-                    <div>
-                        <strong>Project:</strong> {{ run.project.name }}<br>
-                        <strong>Run ID:</strong> {{ run.id }}
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                Test Cases in Run
-                <div style="float: right;">
-                    <a href="/ui/run/{{ run.id }}/add-cases" class="btn btn-success">Add Test Cases</a>
-                </div>
-            </div>
-            <div class="card-body">
-                {% if entries %}
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Test Case</th>
-                            <th>Section</th>
-                            <th>Status</th>
-                            <th>Comment</th>
-                            <th>Elapsed</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for entry in entries %}
-                        <tr>
-                            <td>{{ entry.case.id }}</td>
-                            <td>
-                                <a href="/ui/case/{{ entry.case.id }}">{{ entry.case.title }}</a>
-                            </td>
-                            <td>{{ entry.case.section.name }}</td>
-                            <td>
-                                <span class="status-badge status-{{ status_classes[entry.status_id] }}">
-                                    {{ status_names[entry.status_id] }}
-                                </span>
-                            </td>
-                            <td>{{ entry.comment or "-" }}</td>
-                            <td>{{ entry.elapsed or "-" }}</td>
-                            <td>
-                                <a href="/ui/case/{{ entry.case.id }}" class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">View</a>
-                                {% if entry.status_id == 3 %}
-                                <a href="/ui/case/{{ entry.case.id }}/execute" class="btn btn-success" style="font-size: 0.8rem; padding: 0.25rem 0.5rem;">Execute</a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                {% else %}
-                <div style="text-align: center; padding: 2rem;">
-                    <p>No test cases added to this run yet.</p>
-                    <a href="/ui/run/{{ run.id }}/add-cases" class="btn btn-success">Add Test Cases</a>
-                </div>
-                {% endif %}
-            </div>
+<!-- Run Header -->
+<div class="tr-card mb-16">
+    <div class="tr-card-header">
+        <div class="tr-card-title">{{ run.name }}</div>
+        <div class="flex gap-8">
+            {% if not run.is_completed %}
+            <a href="/ui/run/{{ run.id }}/add-cases" class="btn btn-sm btn-secondary">+ Add Cases</a>
+            <a href="/ui/run/{{ run.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+            <a href="/ui/run/{{ run.id }}/complete" class="btn btn-sm btn-success"
+               data-confirm="Close this test run?">Close Run</a>
+            {% else %}
+            <span class="badge badge-passed">Closed</span>
+            {% endif %}
+            <form action="/ui/run/{{ run.id }}/delete" method="post" style="display:inline;">
+                <button type="submit" class="btn btn-sm btn-danger"
+                        data-confirm="Delete this test run?">Delete</button>
+            </form>
         </div>
     </div>
-    
-    <div class="sidebar">
-        <h3>Run Statistics</h3>
-        <div style="font-size: 0.9rem;">
-            {% set total_cases = entries|length %}
-            {% set passed_cases = entries|selectattr('status_id', 'equalto', 1)|list|length %}
-            {% set failed_cases = entries|selectattr('status_id', 'equalto', 5)|list|length %}
-            {% set untested_cases = entries|selectattr('status_id', 'equalto', 3)|list|length %}
-            {% set blocked_cases = entries|selectattr('status_id', 'equalto', 2)|list|length %}
-            
-            <div style="margin-bottom: 0.5rem;">
-                <strong>Total Cases:</strong> {{ total_cases }}
+    <div class="tr-card-body">
+        {% if run.description %}<p class="text-muted mb-16">{{ run.description }}</p>{% endif %}
+
+        <!-- Progress stats -->
+        <div class="flex gap-8 flex-wrap mb-16">
+            {% set total = entries|length %}
+            {% for sid, sname in status_names.items() %}
+            {% set cnt = status_counts.get(sid, 0) %}
+            {% set cls = status_classes.get(sid, 'untested') %}
+            <div style="text-align:center;min-width:70px;">
+                <div style="font-size:22px;font-weight:700;">{{ cnt }}</div>
+                <span class="badge badge-{{ cls }}">{{ sname }}</span>
             </div>
-            <div style="margin-bottom: 0.5rem;">
-                <span class="status-badge status-passed" style="font-size: 0.7rem;">Passed</span>
-                <span style="margin-left: 0.5rem;">{{ passed_cases }}</span>
-            </div>
-            <div style="margin-bottom: 0.5rem;">
-                <span class="status-badge status-failed" style="font-size: 0.7rem;">Failed</span>
-                <span style="margin-left: 0.5rem;">{{ failed_cases }}</span>
-            </div>
-            <div style="margin-bottom: 0.5rem;">
-                <span class="status-badge status-untested" style="font-size: 0.7rem;">Untested</span>
-                <span style="margin-left: 0.5rem;">{{ untested_cases }}</span>
-            </div>
-            <div style="margin-bottom: 0.5rem;">
-                <span class="status-badge status-blocked" style="font-size: 0.7rem;">Blocked</span>
-                <span style="margin-left: 0.5rem;">{{ blocked_cases }}</span>
-            </div>
-            
-            {% if total_cases > 0 %}
-            <div style="margin-top: 1rem;">
-                <strong>Progress:</strong> {{ ((passed_cases + failed_cases) / total_cases * 100)|round|int }}%
-            </div>
+            {% endfor %}
+        </div>
+
+        {% if entries %}
+        <!-- Progress bar -->
+        <div style="margin-bottom:4px;font-size:12px;color:var(--tr-gray-600);">{{ total }} tests total</div>
+        <div class="tr-progress" style="height:8px;border-radius:4px;">
+            {% set passed  = status_counts.get(1,0) %}
+            {% set failed  = status_counts.get(5,0) %}
+            {% set blocked = status_counts.get(2,0) %}
+            {% set retest  = status_counts.get(4,0) %}
+            {% if total > 0 %}
+            <div class="tr-progress-fill" style="width:{{ (passed/total*100)|int }}%;background:var(--tr-green);"></div>
+            <div class="tr-progress-fill" style="width:{{ (failed/total*100)|int }}%;background:var(--tr-red);"></div>
+            <div class="tr-progress-fill" style="width:{{ (blocked/total*100)|int }}%;background:var(--tr-orange);"></div>
+            <div class="tr-progress-fill" style="width:{{ (retest/total*100)|int }}%;background:var(--tr-blue);"></div>
             {% endif %}
         </div>
-        
-        <h3>Run Actions</h3>
-        <ul>
-            <li><a href="/ui/run/{{ run.id }}/add-cases" class="btn btn-success" style="margin-bottom: 0.5rem;">Add Cases</a></li>
-            {% if not run.is_completed %}
-            <li><a href="/ui/run/{{ run.id }}/complete" class="btn" style="margin-bottom: 0.5rem;">Mark Complete</a></li>
-            {% endif %}
-            <li><a href="/ui/run/{{ run.id }}/report" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Generate Report</a></li>
-        </ul>
-        
-        <h3>Run Information</h3>
-        <div style="font-size: 0.9rem; color: #6c757d;">
-            <p><strong>Created:</strong> {{ run.created_on.strftime('%Y-%m-%d %H:%M') }}</p>
-            <p><strong>Project:</strong> {{ run.project.name }}</p>
-            <p><strong>Run ID:</strong> {{ run.id }}</p>
-            <p><strong>Status:</strong> {{ "Completed" if run.is_completed else "In Progress" }}</p>
-        </div>
-        
-        <h3>Next Steps</h3>
-        <div style="font-size: 0.9rem; color: #6c757d;">
-            {% if total_cases == 0 %}
-            <p>Add test cases to this run to start testing.</p>
-            {% elif untested_cases > 0 %}
-            <p>Execute the remaining {{ untested_cases }} untested case{{ "s" if untested_cases != 1 else "" }}.</p>
-            {% elif not run.is_completed %}
-            <p>All cases executed! Consider marking this run as complete.</p>
-            {% else %}
-            <p>This run is complete. Generate a report to share results.</p>
-            {% endif %}
-        </div>
+        {% endif %}
     </div>
 </div>
 
-<style>
-.main-content {
-    min-height: 600px;
-}
+<!-- Test Entries -->
+<div class="tr-card">
+    <div class="tr-card-header">
+        <div class="tr-card-title">Test Cases ({{ entries|length }})</div>
+        {% if not run.is_completed %}
+        <a href="/ui/run/{{ run.id }}/add-cases" class="btn btn-sm btn-secondary">+ Add Cases</a>
+        {% endif %}
+    </div>
+    {% if entries %}
+    <table class="tr-table">
+        <thead>
+            <tr>
+                <th style="width:60px;">ID</th>
+                <th>Test Case</th>
+                <th>Status</th>
+                <th>Comment</th>
+                <th>Elapsed</th>
+                {% if not run.is_completed %}<th></th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+        {% for entry in entries %}
+            <tr>
+                <td class="text-muted">C{{ entry.case_id }}</td>
+                <td>
+                    <a href="/ui/case/{{ entry.case_id }}" style="color:var(--tr-blue);text-decoration:none;font-weight:500;">
+                        {{ entry.case.title if entry.case else 'Case ' ~ entry.case_id }}
+                    </a>
+                </td>
+                <td>
+                    {% set cls = status_classes.get(entry.status_id, 'untested') %}
+                    <span class="badge badge-{{ cls }}">{{ status_names.get(entry.status_id, 'Untested') }}</span>
+                </td>
+                <td class="text-muted">{{ entry.comment or '—' }}</td>
+                <td class="text-muted">{{ entry.elapsed or '—' }}</td>
+                {% if not run.is_completed %}
+                <td>
+                    <button onclick="openUpdateModal({{ entry.id }}, {{ entry.status_id }})"
+                            class="btn btn-xs btn-primary">Update</button>
+                </td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:32px;">
+        <p>No test cases in this run. <a href="/ui/run/{{ run.id }}/add-cases" style="color:var(--tr-blue);">Add test cases</a>.</p>
+    </div>
+    {% endif %}
+</div>
 
-.table td {
-    vertical-align: middle;
-}
+{% if not run.is_completed %}
+<!-- Update modal -->
+<div id="update-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:6px;padding:24px;width:400px;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+        <h3 style="margin-bottom:16px;font-size:15px;">Update Test Result</h3>
+        <form id="update-form" method="post">
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select name="status_id" class="form-control" id="modal-status">
+                    {% for sid, sname in status_names.items() %}
+                    <option value="{{ sid }}">{{ sname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Comment</label>
+                <textarea name="comment" class="form-control" rows="3" placeholder="Optional comment…"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Elapsed</label>
+                <input type="text" name="elapsed" class="form-control" placeholder="e.g. 2m 30s">
+            </div>
+            <div class="flex gap-8" style="justify-content:flex-end;">
+                <button type="button" onclick="closeModal()" class="btn btn-secondary">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-.table td:last-child {
-    white-space: nowrap;
+<script>
+function openUpdateModal(entryId, currentStatus) {
+    document.getElementById('update-form').action = '/ui/run/{{ run.id }}/entry/' + entryId + '/update';
+    document.getElementById('modal-status').value = currentStatus;
+    const modal = document.getElementById('update-modal');
+    modal.style.display = 'flex';
 }
-
-.status-badge {
-    font-size: 0.75rem;
+function closeModal() {
+    document.getElementById('update-modal').style.display = 'none';
 }
-
-.card-header div {
-    display: inline-block;
-}
-
-.card-header .btn {
-    margin-left: 0.5rem;
-}
-</style>
+document.getElementById('update-modal').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+});
+</script>
+{% endif %}
 {% endblock %}

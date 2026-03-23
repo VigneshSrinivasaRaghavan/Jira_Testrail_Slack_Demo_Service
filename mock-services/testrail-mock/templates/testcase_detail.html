@@ -1,249 +1,189 @@
 {% extends "base.html" %}
+{% block title %}C{{ case.id }} – {{ case.title }} – TestRail Mock{% endblock %}
 
-{% block title %}{{ case.title }} - TestRail Mock{% endblock %}
+{% block breadcrumb %}{% endblock %}
 
 {% block content %}
 {% set breadcrumb = [
-    {"name": "Dashboard", "url": "/ui"},
     {"name": "Test Cases", "url": "/ui/cases"},
-    {"name": case.title, "url": ""}
+    {"name": "C" ~ case.id ~ " – " ~ case.title, "url": ""}
 ] %}
 
-<div class="two-column">
-    <div class="main-content">
-        <div class="card">
-            <div class="card-header">
-                Test Case Details
-                <div style="float: right;">
-                    <a href="/ui/case/{{ case.id }}/edit" class="btn btn-secondary">Edit</a>
-                    <a href="/ui/case/{{ case.id }}/execute" class="btn btn-success">Execute Test</a>
-                </div>
+<div class="tr-breadcrumb" style="margin:-20px -24px 16px -24px;">
+    <a href="/ui/cases">Test Cases</a>
+    <span class="sep">›</span>
+    <span>C{{ case.id }} – {{ case.title[:60] }}{% if case.title|length > 60 %}…{% endif %}</span>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 280px;gap:16px;">
+
+<!-- Main content -->
+<div>
+    <!-- Case Header -->
+    <div class="tr-card">
+        <div class="tr-card-header">
+            <div class="tr-card-title">
+                <span class="text-muted" style="font-weight:400;margin-right:6px;">C{{ case.id }}</span>
+                {{ case.title }}
             </div>
-            <div class="card-body">
-                <h2>{{ case.title }}</h2>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin: 1.5rem 0;">
-                    <div>
-                        <strong>Section:</strong> {{ case.section.name }}<br>
-                        <strong>Type:</strong> {{ type_names[case.type_id] }}<br>
-                        <strong>Priority:</strong> {{ priority_names[case.priority_id] }}
-                    </div>
-                    <div>
-                        <strong>Template:</strong> {{ case.template.name }}<br>
-                        <strong>Created:</strong> {{ case.created_on.strftime('%Y-%m-%d %H:%M') }}<br>
-                        <strong>Updated:</strong> {{ case.updated_on.strftime('%Y-%m-%d %H:%M') }}
-                    </div>
-                </div>
-                
-                {% if case.preconditions %}
-                <div style="margin: 1.5rem 0;">
-                    <h4>Preconditions</h4>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
-                        {{ case.preconditions }}
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if case.steps %}
-                <div style="margin: 1.5rem 0;">
-                    <h4>Test Steps</h4>
-                    <div style="margin-top: 1rem;">
-                        {% for step in case.steps %}
-                        <div style="border: 1px solid #e9ecef; border-radius: 4px; margin-bottom: 1rem; overflow: hidden;">
-                            <div style="background: #f8f9fa; padding: 0.75rem; border-bottom: 1px solid #e9ecef;">
-                                <strong>Step {{ loop.index }}:</strong> {{ step.step }}
-                            </div>
-                            <div style="padding: 0.75rem;">
-                                <strong>Expected Result:</strong> {{ step.expected }}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-                {% endif %}
-                
-                {% if case.expected_result %}
-                <div style="margin: 1.5rem 0;">
-                    <h4>Expected Result</h4>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 0.5rem;">
-                        {{ case.expected_result }}
-                    </div>
-                </div>
-                {% endif %}
+            <div class="flex gap-8">
+                <a href="/ui/case/{{ case.id }}/execute" class="btn btn-sm btn-primary">Execute</a>
+                <a href="/ui/case/{{ case.id }}/edit" class="btn btn-sm btn-secondary">Edit</a>
+                <a href="/ui/case/{{ case.id }}/copy" class="btn btn-sm btn-secondary">Copy</a>
+                <form action="/ui/case/{{ case.id }}/delete" method="post" style="display:inline;">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                            data-confirm="Delete this test case and all its results?">Delete</button>
+                </form>
             </div>
         </div>
-        
-        <div class="card">
-            <div class="card-header">
-                Execution History
-                <div style="float: right;">
-                    <a href="/ui/case/{{ case.id }}/execute" class="btn btn-success">Add Result</a>
+        <div class="tr-card-body">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+                <div>
+                    <div class="text-muted text-small">Section</div>
+                    <div class="mt-8">
+                        <a href="/ui/cases?section_id={{ case.section_id }}" style="color:var(--tr-blue);text-decoration:none;">
+                            {{ case.section.name if case.section else case.section_id }}
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted text-small">Type</div>
+                    <div class="mt-8">{{ type_names.get(case.type_id, '—') }}</div>
+                </div>
+                <div>
+                    {% set pnames = {1:'critical',2:'high',3:'medium',4:'low'} %}
+                    <div class="text-muted text-small">Priority</div>
+                    <div class="mt-8 priority-{{ pnames.get(case.priority_id,'medium') }}">
+                        {{ priority_names.get(case.priority_id, '—') }}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-muted text-small">Status</div>
+                    <div class="mt-8">
+                        {% if latest_result %}
+                            {% set cls = status_classes.get(latest_result.status_id, 'untested') %}
+                            <span class="badge badge-{{ cls }}">{{ status_names.get(latest_result.status_id) }}</span>
+                        {% else %}
+                            <span class="badge badge-untested">Untested</span>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            <div class="card-body">
-                {% if results %}
-                <table class="table">
+
+            {% if case.preconditions %}
+            <div class="mb-16">
+                <div class="text-muted text-small fw-600 mb-8">Preconditions</div>
+                <div style="background:var(--tr-gray-100);padding:10px 12px;border-radius:var(--tr-radius);font-size:13px;white-space:pre-wrap;">{{ case.preconditions }}</div>
+            </div>
+            {% endif %}
+
+            {% if case.steps %}
+            <div class="mb-16">
+                <div class="text-muted text-small fw-600 mb-8">Test Steps</div>
+                <table class="steps-table">
                     <thead>
                         <tr>
-                            <th>Status</th>
-                            <th>Comment</th>
-                            <th>Elapsed</th>
-                            <th>Executed By</th>
-                            <th>Date</th>
+                            <th class="step-num">#</th>
+                            <th>Step / Action</th>
+                            <th>Expected Result</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for result in results %}
+                    {% for step in case.steps %}
                         <tr>
-                            <td>
-                                <span class="status-badge status-{{ status_classes[result.status_id] }}">
-                                    {{ status_names[result.status_id] }}
-                                </span>
-                            </td>
-                            <td>{{ result.comment or "-" }}</td>
-                            <td>{{ result.elapsed or "-" }}</td>
-                            <td>{{ result.created_by }}</td>
-                            <td>{{ result.created_on.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td class="step-num">{{ loop.index }}</td>
+                            <td>{{ step.get('content') or step.get('step', '') }}</td>
+                            <td class="text-muted">{{ step.get('expected', '') }}</td>
                         </tr>
-                        {% endfor %}
+                    {% endfor %}
                     </tbody>
                 </table>
-                {% else %}
-                <p>No execution history yet.</p>
-                <a href="/ui/case/{{ case.id }}/execute" class="btn btn-success">Execute This Test</a>
-                {% endif %}
             </div>
-        </div>
-    </div>
-    
-    <div class="sidebar">
-        <h3>Test Case Actions</h3>
-        <ul>
-            <li><a href="/ui/case/{{ case.id }}/execute" class="btn btn-success" style="margin-bottom: 0.5rem;">Execute Test</a></li>
-            <li><a href="/ui/case/{{ case.id }}/edit" class="btn btn-secondary" style="margin-bottom: 0.5rem;">Edit Case</a></li>
-            <li><a href="/ui/case/{{ case.id }}/copy" class="btn" style="margin-bottom: 0.5rem;">Copy Case</a></li>
-        </ul>
-        
-        <h3>Section: {{ case.section.name }}</h3>
-        <ul>
-            {% for sibling in section_cases %}
-            <li>
-                <a href="/ui/case/{{ sibling.id }}" {% if sibling.id == case.id %}style="font-weight: bold;"{% endif %}>
-                    {{ sibling.title }}
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-        
-        <h3>Test Information</h3>
-        <div style="font-size: 0.9rem; color: #6c757d;">
-            <p><strong>ID:</strong> {{ case.id }}</p>
-            <p><strong>Section ID:</strong> {{ case.section_id }}</p>
-            <p><strong>Template ID:</strong> {{ case.template_id }}</p>
-            <p><strong>Type ID:</strong> {{ case.type_id }}</p>
-            <p><strong>Priority ID:</strong> {{ case.priority_id }}</p>
-        </div>
-        
-        <h3>Latest Status</h3>
-        {% if latest_result %}
-        <div style="padding: 1rem; background: #f8f9fa; border-radius: 4px;">
-            <span class="status-badge status-{{ status_classes[latest_result.status_id] }}">
-                {{ status_names[latest_result.status_id] }}
-            </span>
-            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
-                {{ latest_result.created_on.strftime('%Y-%m-%d %H:%M') }}
-            </p>
-            {% if latest_result.comment %}
-            <p style="margin-top: 0.5rem; font-size: 0.9rem;">
-                "{{ latest_result.comment }}"
-            </p>
+            {% endif %}
+
+            {% if case.expected_result %}
+            <div>
+                <div class="text-muted text-small fw-600 mb-8">Expected Result</div>
+                <div style="background:var(--tr-gray-100);padding:10px 12px;border-radius:var(--tr-radius);font-size:13px;white-space:pre-wrap;">{{ case.expected_result }}</div>
+            </div>
+            {% endif %}
+
+            {% if not case.preconditions and not case.steps and not case.expected_result %}
+            <p class="text-muted">No additional details. <a href="/ui/case/{{ case.id }}/edit" style="color:var(--tr-blue);">Add details →</a></p>
             {% endif %}
         </div>
+    </div>
+
+    <!-- Execution History -->
+    <div class="tr-card">
+        <div class="tr-card-header">
+            <div class="tr-card-title">Execution History</div>
+            <a href="/ui/case/{{ case.id }}/execute" class="btn btn-sm btn-primary">+ Add Result</a>
+        </div>
+        {% if results %}
+        <table class="tr-table">
+            <thead>
+                <tr><th>Status</th><th>Comment</th><th>Elapsed</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+            {% for result in results %}
+                <tr>
+                    <td>
+                        {% set cls = status_classes.get(result.status_id, 'untested') %}
+                        <span class="badge badge-{{ cls }}">{{ status_names.get(result.status_id, 'Unknown') }}</span>
+                    </td>
+                    <td>{{ result.comment or '—' }}</td>
+                    <td class="text-muted">{{ result.elapsed or '—' }}</td>
+                    <td class="text-muted text-small">{{ result.created_on.strftime('%Y-%m-%d %H:%M') if result.created_on else '—' }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
         {% else %}
-        <p style="font-size: 0.9rem; color: #6c757d;">Not yet executed</p>
+        <div class="empty-state" style="padding:24px;">
+            <p>No executions yet. <a href="/ui/case/{{ case.id }}/execute" style="color:var(--tr-blue);">Execute this test case</a>.</p>
+        </div>
         {% endif %}
     </div>
 </div>
 
-<!-- Quick Execute Modal -->
-<div id="executeModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px;">
-        <h3>Execute Test Case</h3>
-        <form id="executeForm" method="POST" action="/ui/case/{{ case.id }}/execute">
-            <div class="form-group">
-                <label class="form-label">Status</label>
-                <select name="status_id" class="form-control" required>
-                    <option value="">Select status...</option>
-                    <option value="1">Passed</option>
-                    <option value="5">Failed</option>
-                    <option value="2">Blocked</option>
-                    <option value="4">Retest</option>
-                </select>
+<!-- Sidebar: other cases in section -->
+<div>
+    <div class="tr-card">
+        <div class="tr-card-header">
+            <div class="tr-card-title">Cases in Section</div>
+        </div>
+        <div style="max-height:400px;overflow-y:auto;">
+            {% for sc in section_cases %}
+            <div style="padding:8px 14px;border-bottom:1px solid var(--tr-border);{% if sc.id == case.id %}background:#e8f0fe;{% endif %}">
+                <a href="/ui/case/{{ sc.id }}"
+                   style="text-decoration:none;color:{% if sc.id == case.id %}var(--tr-blue){% else %}var(--tr-gray-800){% endif %};font-size:12px;font-weight:{% if sc.id == case.id %}600{% else %}400{% endif %};">
+                    C{{ sc.id }} – {{ sc.title[:42] }}{% if sc.title|length > 42 %}…{% endif %}
+                </a>
             </div>
-            <div class="form-group">
-                <label class="form-label">Comment</label>
-                <textarea name="comment" class="form-control" rows="3" placeholder="Add execution notes..."></textarea>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- API info -->
+    <div class="tr-card">
+        <div class="tr-card-header"><div class="tr-card-title">API Access</div></div>
+        <div class="tr-card-body" style="font-size:11px;">
+            <div style="margin-bottom:8px;">
+                <div class="text-muted mb-8">Get this case:</div>
+                <code style="display:block;background:var(--tr-gray-100);padding:6px;border-radius:3px;word-break:break-all;">GET /index.php?/api/v2/get_case/{{ case.id }}</code>
             </div>
-            <div class="form-group">
-                <label class="form-label">Elapsed Time</label>
-                <input type="text" name="elapsed" class="form-control" placeholder="e.g., 2m 30s">
+            <div style="margin-bottom:8px;">
+                <div class="text-muted mb-8">Add result:</div>
+                <code style="display:block;background:var(--tr-gray-100);padding:6px;border-radius:3px;word-break:break-all;">POST /index.php?/api/v2/add_result/{{ case.id }}</code>
             </div>
-            <div style="text-align: right; margin-top: 1.5rem;">
-                <button type="button" onclick="closeExecuteModal()" class="btn btn-secondary">Cancel</button>
-                <button type="submit" class="btn btn-success">Save Result</button>
+            <div>
+                <div class="text-muted mb-8">Update case:</div>
+                <code style="display:block;background:var(--tr-gray-100);padding:6px;border-radius:3px;word-break:break-all;">POST /index.php?/api/v2/update_case/{{ case.id }}</code>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<script>
-function openExecuteModal() {
-    document.getElementById('executeModal').style.display = 'block';
-}
-
-function closeExecuteModal() {
-    document.getElementById('executeModal').style.display = 'none';
-}
-
-// Open modal when execute buttons are clicked
-document.addEventListener('DOMContentLoaded', function() {
-    const executeButtons = document.querySelectorAll('a[href*="/execute"]');
-    executeButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            openExecuteModal();
-        });
-    });
-    
-    // Close modal when clicking outside
-    document.getElementById('executeModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeExecuteModal();
-        }
-    });
-});
-</script>
-
-<style>
-.main-content {
-    min-height: 600px;
-}
-
-.status-badge {
-    font-size: 0.85rem;
-}
-
-h4 {
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
-}
-
-.card-header div {
-    display: inline-block;
-}
-
-.card-header .btn {
-    margin-left: 0.5rem;
-}
-</style>
+</div>
 {% endblock %}
