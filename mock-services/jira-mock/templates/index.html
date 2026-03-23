@@ -1,22 +1,142 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Jira Mock - Issues</title>
-  </head>
-  <body>
-    <h1>Jira Mock - Issues</h1>
-    <form id="createForm" method="post" action="/ui/create">
-      <label>Summary: <input name="summary" /></label>
-      <label>Description: <input name="description" /></label>
-      <button type="submit">Create</button>
-    </form>
-    <ul>
-      {% for issue in issues %}
-        <li><a href="/ui/issue/{{ issue.key }}">{{ issue.key }} - {{ issue.summary }}</a></li>
+{% extends "base.html" %}
+
+{% block title %}Backlog – QA Project{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <div style="font-size:12px;color:var(--jira-muted);margin-bottom:4px;">QA Project</div>
+    <h1 class="page-title">Backlog</h1>
+  </div>
+  <button class="btn btn-primary" onclick="openCreateModal()">+ Create Issue</button>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <a href="/ui"
+     class="filter-chip {% if not filter_type and not filter_status %}active{% endif %}">
+    All Issues
+  </a>
+  <a href="/ui?filter_type=Story"
+     class="filter-chip {% if filter_type == 'Story' %}active{% endif %}">
+    <span class="issue-type-icon type-story" style="margin-right:4px">S</span> Stories
+  </a>
+  <a href="/ui?filter_type=Bug"
+     class="filter-chip {% if filter_type == 'Bug' %}active{% endif %}">
+    <span class="issue-type-icon type-bug" style="margin-right:4px">B</span> Bugs
+  </a>
+  <a href="/ui?filter_type=Task"
+     class="filter-chip {% if filter_type == 'Task' %}active{% endif %}">
+    <span class="issue-type-icon type-task" style="margin-right:4px">T</span> Tasks
+  </a>
+  <span style="width:1px;height:20px;background:var(--jira-border);display:inline-block;margin:0 4px;"></span>
+  <a href="/ui?filter_status=To+Do"
+     class="filter-chip {% if filter_status == 'To Do' %}active{% endif %}">
+    <span class="status-badge status-todo" style="font-size:10px;padding:1px 6px">To Do</span>
+  </a>
+  <a href="/ui?filter_status=In+Progress"
+     class="filter-chip {% if filter_status == 'In Progress' %}active{% endif %}">
+    <span class="status-badge status-inprogress" style="font-size:10px;padding:1px 6px">In Progress</span>
+  </a>
+  <a href="/ui?filter_status=Done"
+     class="filter-chip {% if filter_status == 'Done' %}active{% endif %}">
+    <span class="status-badge status-done" style="font-size:10px;padding:1px 6px">Done</span>
+  </a>
+</div>
+
+<!-- Issue List -->
+<div class="issue-list">
+  <div class="issue-list-header">
+    <div></div>
+    <div>Key</div>
+    <div>Summary</div>
+    <div>Status</div>
+    <div>Priority</div>
+    <div>Assignee</div>
+    <div>Type</div>
+  </div>
+
+  {% for issue in issues %}
+  {% set itype = issue.issue_type | lower %}
+  {% set istatus = issue.status or 'To Do' %}
+  <a href="/ui/issue/{{ issue.key }}" class="issue-row">
+    <!-- Type icon -->
+    <div>
+      {% if itype == 'story' %}
+        <span class="issue-type-icon type-story" title="Story">S</span>
+      {% elif itype == 'bug' %}
+        <span class="issue-type-icon type-bug" title="Bug">B</span>
       {% else %}
-        <li>No issues</li>
-      {% endfor %}
-    </ul>
-  </body>
-</html>
+        <span class="issue-type-icon type-task" title="Task">T</span>
+      {% endif %}
+    </div>
+
+    <!-- Key -->
+    <div class="issue-key-chip">{{ issue.key }}</div>
+
+    <!-- Summary -->
+    <div class="issue-summary">{{ issue.summary }}</div>
+
+    <!-- Status -->
+    <div>
+      {% if istatus == 'In Progress' %}
+        <span class="status-badge status-inprogress">In Progress</span>
+      {% elif istatus == 'Done' %}
+        <span class="status-badge status-done">Done</span>
+      {% else %}
+        <span class="status-badge status-todo">To Do</span>
+      {% endif %}
+    </div>
+
+    <!-- Priority -->
+    <div style="display:flex;align-items:center;gap:5px">
+      {% set p = issue.priority | lower %}
+      {% if p == 'highest' %}
+        <span class="priority-icon p-highest" title="Highest"></span> <span style="font-size:12px">Highest</span>
+      {% elif p == 'high' %}
+        <span class="priority-icon p-high" title="High"></span> <span style="font-size:12px">High</span>
+      {% elif p == 'low' %}
+        <span class="priority-icon p-low" title="Low"></span> <span style="font-size:12px">Low</span>
+      {% elif p == 'lowest' %}
+        <span class="priority-icon p-lowest" title="Lowest"></span> <span style="font-size:12px">Lowest</span>
+      {% elif p == 'critical' %}
+        <span class="priority-icon p-critical" title="Critical"></span> <span style="font-size:12px">Critical</span>
+      {% else %}
+        <span class="priority-icon p-medium" title="Medium"></span> <span style="font-size:12px">Medium</span>
+      {% endif %}
+    </div>
+
+    <!-- Assignee -->
+    <div>
+      {% if issue.assignee %}
+        <span class="assignee-chip" title="{{ issue.assignee }}">
+          {{ issue.assignee[:2] | upper }}
+        </span>
+      {% else %}
+        <span style="color:var(--jira-muted);font-size:12px">Unassigned</span>
+      {% endif %}
+    </div>
+
+    <!-- Type label -->
+    <div style="font-size:12px;color:var(--jira-muted)">
+      {{ issue.issue_type or 'Task' }}
+    </div>
+  </a>
+  {% else %}
+  <div class="empty-state">
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="20" stroke="#DFE1E6" stroke-width="2"/>
+      <path d="M16 24h16M24 16v16" stroke="#DFE1E6" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+    <p>No issues found</p>
+    <small>Create your first issue using the <strong>+ Create</strong> button</small>
+  </div>
+  {% endfor %}
+</div>
+
+{% if issues %}
+<div style="margin-top:12px;font-size:12px;color:var(--jira-muted)">
+  Showing {{ issues | length }} issue{{ 's' if issues | length != 1 else '' }}
+</div>
+{% endif %}
+{% endblock %}

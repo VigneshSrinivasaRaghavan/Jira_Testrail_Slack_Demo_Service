@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Jira Mock{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- Top Navigation Bar -->
+<nav class="topnav">
+  <div class="topnav-left">
+    <a href="/ui" class="topnav-logo" title="Jira Mock">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M11.53 2.16L6.5 7.19l2.47 2.47 5.03-5.03a1.75 1.75 0 012.47 2.47l-2.47 2.47 2.47 2.47 2.47-2.47a5.25 5.25 0 00-7.41-7.41z" fill="#2684FF"/>
+        <path d="M12.47 21.84l5.03-5.03-2.47-2.47-5.03 5.03a1.75 1.75 0 01-2.47-2.47l2.47-2.47-2.47-2.47-2.47 2.47a5.25 5.25 0 007.41 7.41z" fill="#2684FF" opacity=".6"/>
+      </svg>
+    </a>
+    <div class="topnav-divider"></div>
+    <a href="/ui" class="topnav-link">Projects</a>
+    <a href="/ui" class="topnav-link active">QA Project</a>
+    <span class="topnav-divider"></span>
+    <a href="/ui" class="topnav-link">Backlog</a>
+  </div>
+  <div class="topnav-right">
+    <button class="btn btn-primary" onclick="openCreateModal()">
+      <span>+ Create</span>
+    </button>
+    <div class="topnav-avatar" title="mock-reporter">MR</div>
+  </div>
+</nav>
+
+<!-- App Shell -->
+<div class="app-shell">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-project">
+      <div class="sidebar-project-icon">QA</div>
+      <div class="sidebar-project-name">QA Project</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="/ui" class="sidebar-link {% if request.url.path == '/ui' %}active{% endif %}">
+        <svg width="16" height="16" viewBox="0 0 16 16"><path fill="currentColor" d="M2 2h5v5H2zm7 0h5v5H9zm0 7h5v5H9zm-7 0h5v5H2z"/></svg>
+        Board
+      </a>
+      <a href="/ui" class="sidebar-link">
+        <svg width="16" height="16" viewBox="0 0 16 16"><path fill="currentColor" d="M1 3h14v2H1zm0 4h14v2H1zm0 4h14v2H1z"/></svg>
+        Backlog
+      </a>
+      <a href="/docs" class="sidebar-link" target="_blank">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><path fill="currentColor" d="M7.25 6.5h1.5V12h-1.5zm0-2.5h1.5v1.5h-1.5z"/></svg>
+        API Docs
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- Create Issue Modal -->
+<div class="modal-overlay" id="createModal" onclick="closeCreateModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Create Issue</h2>
+      <button class="modal-close" onclick="closeCreateModal()">&times;</button>
+    </div>
+    <form method="post" action="/ui/create" id="createIssueForm">
+      <div class="modal-body">
+        <div class="form-row">
+          <label class="form-label">Issue Type</label>
+          <select name="issue_type" class="form-select" id="modalIssueType" onchange="onIssueTypeChange(this.value)">
+            <option value="Story">Story</option>
+            <option value="Bug">Bug</option>
+            <option value="Task">Task</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Summary <span class="required">*</span></label>
+          <input name="summary" class="form-input" placeholder="Enter issue summary" required />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-textarea" rows="5" placeholder="Describe the issue..."></textarea>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Priority</label>
+          <select name="priority" class="form-select">
+            <option>Highest</option>
+            <option>High</option>
+            <option selected>Medium</option>
+            <option>Low</option>
+            <option>Lowest</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Assignee</label>
+          <input name="assignee" class="form-input" placeholder="Username (e.g. jane.smith)" />
+        </div>
+
+        <!-- Story-specific -->
+        <div id="storyFields">
+          <div class="form-row">
+            <label class="form-label">Story Points</label>
+            <input name="story_points" class="form-input" type="number" min="0" placeholder="e.g. 3" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Sprint</label>
+            <input name="sprint" class="form-input" placeholder="e.g. Sprint 1" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Epic Link</label>
+            <input name="epic_link" class="form-input" placeholder="e.g. QA-10" />
+          </div>
+        </div>
+
+        <!-- Bug-specific -->
+        <div id="bugFields" style="display:none">
+          <div class="form-row">
+            <label class="form-label">Environment</label>
+            <input name="environment" class="form-input" placeholder="e.g. Production, Chrome 120" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Fix Version/s</label>
+            <input name="fix_versions" class="form-input" placeholder="Comma-separated, e.g. v1.2, v1.3" />
+          </div>
+          <div class="form-row">
+            <label class="form-label">Due Date</label>
+            <input name="due_date" type="date" class="form-input" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeCreateModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/static/main.js"></script>
+</body>
+</html>

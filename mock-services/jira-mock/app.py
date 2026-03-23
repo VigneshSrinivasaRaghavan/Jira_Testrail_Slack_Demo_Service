@@ -1,196 +1,208 @@
-from fastapi import FastAPI, Request, HTTPException, Header, Form, Query, Path
+from fastapi import FastAPI, Request, HTTPException, Header, Form, Query, Path, Security
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Any
 import sqlite3
 import os
 import json
+import re
 
 app = FastAPI(
     title="Jira Mock Service",
     description="""
-    ## Mock Jira REST API v3 for Testing & Demos
-    
-    This service mimics core Jira Cloud REST API endpoints for educational purposes.
-    Perfect for testing agentic AI integrations without real Jira credentials.
-    
-    ### Authentication
-    All API endpoints require `Authorization: Bearer <token>` header (any token accepted).
-    
-    ### Key Features
-    - ✅ Create, read, update, delete issues
-    - ✅ Search/list issues with pagination  
-    - ✅ Realistic field support (assignee, priority, labels, components)
-    - ✅ Admin reset functionality
-    - ✅ Simple web UI for visual inspection
-    - ✅ SQLite persistence with seed data
-    
-    ### Quick Start
-    1. **Health Check**: `GET /health`
-    2. **List Issues**: `GET /rest/api/3/search` (with auth)
-    3. **Create Issue**: `POST /rest/api/3/issue` (with auth + JSON payload)
-    4. **View UI**: `GET /ui` (no auth required)
-    
-    ### Supported Issue Fields
-    - `summary`, `description`, `issuetype`
-    - `assignee`, `reporter`, `priority` 
-    - `labels` (array), `components` (array)
-    - `created`, `updated` (auto-managed)
-    - `project`, `status` (fixed values)
+## Mock Jira REST API v3 — Training & Demo Environment
+
+This service mimics Jira Cloud REST API v3 endpoints for AI agent integration training.
+
+---
+
+## 🔑 Authentication — Required for ALL API calls
+
+Every API endpoint requires a Bearer token in the `Authorization` header.
+
+**The token is fixed. Only this exact value is accepted:**
+
+```
+Authorization: Bearer mock-jira-token-2025
+```
+
+Any other token → **401 Unauthorized**.
+
+**How to authorize in this UI:**
+1. Click the **Authorize 🔒** button at the top right of this page
+2. In the `BearerAuth` field enter: `mock-jira-token-2025`
+3. Click **Authorize** → **Close**
+4. All requests from this UI will now include the correct header automatically
+
+---
+
+## Key Features
+- **Create / Read / Edit / Delete** issues (Story & Bug)
+- **Status transitions**: To Do → In Progress → Done
+- **Story fields**: story points (`customfield_10016`), sprint (`customfield_10020`), epic link (`customfield_10014`)
+- **Bug fields**: environment, fixVersions, duedate
+- **ADF description** format (same as real Jira Cloud)
+- **JQL search**: `?jql=issuetype=Story`, `?jql=status="In Progress"`
+- **Transitions API**: `GET/POST /rest/api/3/issue/{key}/transitions`
+- **Admin reset**: `POST /admin/reset` — wipes DB and reloads seed data
+
+---
+
+## Base URL
+```
+http://localhost:4001
+```
     """,
-    version="1.0.0",
-    contact={
-        "name": "Mock Services",
-        "url": "https://github.com/your-repo/mock-services",
-    },
-    license_info={
-        "name": "MIT",
-    },
+    version="2.0.0",
+    openapi_tags=[
+        {"name": "Issues", "description": "CRUD operations for Jira issues (Story, Bug, Task)"},
+        {"name": "System",  "description": "Health check and service info"},
+        {"name": "Admin",   "description": "Reset and maintenance operations"},
+        {"name": "UI",      "description": "Browser UI routes (no auth required)"},
+    ],
+    swagger_ui_parameters={"persistAuthorization": True},
 )
 
-# Templates & static
+# Inject BearerAuth security scheme into OpenAPI spec so the Authorize button
+# appears in Swagger UI pre-filled with the scheme name.
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    from fastapi.openapi.utils import get_openapi
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+        tags=app.openapi_tags,
+    )
+    schema.setdefault("components", {})
+    schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "description": "Enter the mock API token: **mock-jira-token-2025**",
+        }
+    }
+    # Apply security globally to every operation
+    for path_data in schema.get("paths", {}).values():
+        for operation in path_data.values():
+            if isinstance(operation, dict):
+                operation.setdefault("security", [{"BearerAuth": []}])
+    app.openapi_schema = schema
+    return schema
+
+app.openapi = custom_openapi
+
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "jira.db")
 
-# Pydantic response models for OpenAPI documentation
-class IssueTypeResponse(BaseModel):
-    name: str = Field(..., example="Bug", description="Issue type name")
+PROJECT_KEY = os.environ.get("JIRA_PROJECT_KEY", "QA")
+PROJECT_NAME = os.environ.get("JIRA_PROJECT_NAME", "QA Project")
 
-class PriorityResponse(BaseModel):
-    name: str = Field(..., example="High", description="Priority level")
+# Fixed API token — only this value is accepted in the Authorization header.
+# Configurable via env var JIRA_API_TOKEN; defaults to the value below.
+VALID_API_TOKEN = os.environ.get("JIRA_API_TOKEN", "mock-jira-token-2025")
 
-class ProjectResponse(BaseModel):
-    key: str = Field(..., example="QA", description="Project key")
-    name: str = Field(..., example="QA Project", description="Project name")
+# ---------------------------------------------------------------------------
+# Pydantic models
+# ---------------------------------------------------------------------------
 
-class StatusResponse(BaseModel):
-    name: str = Field(..., example="To Do", description="Status name")
-    statusCategory: dict = Field(..., example={"name": "To Do"}, description="Status category")
-
-class AssigneeResponse(BaseModel):
-    displayName: str = Field(..., example="John Doe", description="Display name of assignee")
-
-class ReporterResponse(BaseModel):
-    accountId: str = Field(..., example="mock-reporter", description="Account ID")
-    displayName: str = Field(..., example="Mock Reporter", description="Display name")
-
-class IssueFieldsResponse(BaseModel):
-    project: ProjectResponse
-    summary: str = Field(..., example="Login page not loading", description="Issue summary")
-    description: str = Field(..., example="When clicking login, page shows 404 error", description="Issue description")
-    issuetype: IssueTypeResponse
-    priority: PriorityResponse
-    status: StatusResponse
-    assignee: Optional[AssigneeResponse] = Field(None, description="Assigned user (null if unassigned)")
-    reporter: ReporterResponse
-    created: str = Field(..., example="2025-09-06 16:51:17", description="Creation timestamp")
-    updated: str = Field(..., example="2025-09-06 16:55:20", description="Last update timestamp")
-    labels: List[str] = Field(..., example=["ui", "critical"], description="Issue labels")
-    components: List[dict] = Field(..., example=[{"name": "frontend"}], description="Components affected")
-    comments: List[dict] = Field(..., example=[], description="Comments (empty in mock)")
-    attachment: List[dict] = Field(..., example=[], description="Attachments (empty in mock)")
-    resolution: Optional[str] = Field(None, example=None, description="Resolution (null for open issues)")
-
-class IssueResponse(BaseModel):
-    id: int = Field(..., example=1, description="Internal issue ID")
-    key: str = Field(..., example="QA-1", description="Issue key")
-    self: str = Field(..., example="/rest/api/3/issue/QA-1", description="Self URL")
-    fields: IssueFieldsResponse
-
-class IssueCreateResponse(BaseModel):
-    id: dict = Field(..., example={"id": "4"}, description="Issue ID object")
-    key: str = Field(..., example="QA-4", description="Generated issue key")
-    self: str = Field(..., example="/rest/api/3/issue/QA-4", description="Self URL")
-    fields: IssueFieldsResponse
-
-class SearchIssueItem(BaseModel):
-    id: int = Field(..., example=1, description="Issue ID")
-    key: str = Field(..., example="QA-1", description="Issue key")
-    fields: dict = Field(..., example={"summary": "Sample issue"}, description="Basic issue fields")
-
-class SearchResponse(BaseModel):
-    startAt: int = Field(..., example=0, description="Starting index")
-    maxResults: int = Field(..., example=50, description="Maximum results requested")
-    total: int = Field(..., example=3, description="Total number of issues found")
-    issues: List[SearchIssueItem] = Field(..., description="List of issues")
-
-class HealthResponse(BaseModel):
-    status: str = Field(..., example="ok", description="Service status")
-    service: str = Field(..., example="jira-mock", description="Service name")
-    version: str = Field(..., example="1.0.0", description="Service version")
-
-class ResetResponse(BaseModel):
-    status: str = Field(..., example="reset", description="Reset operation status")
-
-# Input models for OpenAPI documentation
 class IssueType(BaseModel):
-    name: str = Field(..., example="Bug", description="Issue type name")
+    name: str = Field(..., example="Story")
 
 class Priority(BaseModel):
-    name: str = Field(..., example="High", description="Priority level")
+    name: str = Field(..., example="High")
 
 class Assignee(BaseModel):
-    name: Optional[str] = Field(None, example="john.doe", description="Username of assignee")
-    displayName: Optional[str] = Field(None, example="John Doe", description="Display name")
+    name: Optional[str] = None
+    displayName: Optional[str] = None
+    id: Optional[str] = None
 
 class Project(BaseModel):
-    key: str = Field(..., example="QA", description="Project key")
-    name: Optional[str] = Field(None, example="QA Project", description="Project name")
+    key: str = Field(..., example="QA")
+    name: Optional[str] = None
+    id: Optional[str] = None
+
+class FixVersion(BaseModel):
+    name: Optional[str] = None
+    id: Optional[str] = None
 
 class IssueFields(BaseModel):
-    project: Optional[Project] = Field(None, description="Project information")
-    summary: str = Field(..., example="Login page not loading", description="Brief issue summary")
-    description: Optional[str] = Field("", example="When clicking login, page shows 404 error", description="Detailed description")
-    issuetype: IssueType = Field(..., description="Type of issue")
-    priority: Optional[Priority] = Field(None, description="Issue priority")
-    assignee: Optional[str] = Field(None, example="jane.smith", description="Assignee username")
-    reporter: Optional[str] = Field(None, example="john.doe", description="Reporter username")
-    labels: Optional[List[str]] = Field([], example=["ui", "critical"], description="Issue labels")
-    components: Optional[List[str]] = Field([], example=["frontend"], description="Components affected")
+    project: Optional[Project] = None
+    summary: str = Field(..., example="User can log in with valid credentials")
+    description: Optional[Any] = Field(None, description="Plain string or ADF doc object")
+    issuetype: IssueType
+    priority: Optional[Priority] = None
+    assignee: Optional[Any] = Field(None, description="Username string or assignee object")
+    reporter: Optional[Any] = Field(None, description="Username string or reporter object")
+    labels: Optional[List[str]] = Field(default_factory=list)
+    components: Optional[List[Any]] = Field(default_factory=list)
+    status: Optional[str] = None
+    # Story fields
+    customfield_10016: Optional[int] = Field(None, description="Story Points")
+    customfield_10020: Optional[Any] = Field(None, description="Sprint")
+    customfield_10014: Optional[str] = Field(None, description="Epic Link")
+    # Bug fields
+    environment: Optional[Any] = Field(None, description="Environment (plain text or ADF doc)")
+    fixVersions: Optional[List[Any]] = Field(default_factory=list)
+    duedate: Optional[str] = None
 
 class IssueCreate(BaseModel):
-    fields: IssueFields = Field(..., description="Issue field data")
-    
+    fields: IssueFields
+
     class Config:
         json_schema_extra = {
             "example": {
                 "fields": {
                     "project": {"key": "QA"},
-                    "summary": "Login page not loading",
-                    "description": "When clicking login, page shows 404 error",
-                    "issuetype": {"name": "Bug"},
+                    "summary": "User can log in with valid credentials",
+                    "description": "As a user I want to log in so that I can access the system.\n\nACCEPTANCE CRITERIA\nAC1 - Valid login redirects to dashboard.",
+                    "issuetype": {"name": "Story"},
                     "priority": {"name": "High"},
                     "assignee": "jane.smith",
-                    "labels": ["ui", "critical"],
-                    "components": ["frontend"]
+                    "labels": ["auth", "ui"],
+                    "customfield_10016": 3,
+                    "customfield_10020": "Sprint 1"
                 }
             }
         }
 
 class IssueUpdate(BaseModel):
     fields: dict = Field(..., description="Fields to update")
-    
+
     class Config:
         json_schema_extra = {
             "example": {
                 "fields": {
                     "summary": "Updated summary",
-                    "assignee": "new.assignee",
                     "priority": {"name": "Critical"},
-                    "labels": ["updated", "urgent"]
+                    "customfield_10016": 5
                 }
             }
         }
 
-class IssueForm(BaseModel):
-    summary: str
-    description: Optional[str] = ""
+class TransitionRequest(BaseModel):
+    transition: dict = Field(..., example={"id": "2"})
 
+class HealthResponse(BaseModel):
+    status: str
+    service: str
+    version: str
+
+class ResetResponse(BaseModel):
+    status: str
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def get_db_conn():
     conn = sqlite3.connect(DB_PATH)
@@ -199,305 +211,184 @@ def get_db_conn():
 
 
 def require_bearer(authorization: Optional[str]):
-    """Validate Bearer token authorization"""
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Missing Authorization header. Please provide Bearer token.")
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid Authorization header. Must be 'Bearer <token>'.")
-    # In mock service, we accept any token after "Bearer "
-    token = authorization[7:]  # Remove "Bearer " prefix
-    if not token.strip():
-        raise HTTPException(status_code=401, detail="Empty Bearer token provided.")
-
-
-@app.on_event("startup")
-async def startup():
-    # ensure db
-    conn = get_db_conn()
-    c = conn.cursor()
-    
-    # Drop and recreate table to ensure schema is correct
-    c.execute("DROP TABLE IF EXISTS issues")
-    c.execute("""
-    CREATE TABLE issues (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key TEXT UNIQUE,
-        summary TEXT,
-        description TEXT,
-        issue_type TEXT,
-        priority TEXT DEFAULT 'Medium',
-        assignee TEXT,
-        reporter TEXT DEFAULT 'mock-reporter',
-        labels TEXT DEFAULT '[]',
-        components TEXT DEFAULT '[]',
-        created_on TEXT,
-        updated_on TEXT
-    )
-    """)
-    conn.commit()
-    conn.close()
-    # seed from shared if empty
-    conn = get_db_conn()
-    c = conn.cursor()
-    c.execute("SELECT COUNT(1) as cnt FROM issues")
-    cnt = c.fetchone()[0]
-    if cnt == 0:
-        seed_path = os.path.join(os.path.dirname(__file__), "seed", "sample_issues.json")
-        seed_path = os.path.normpath(seed_path)
-        if os.path.exists(seed_path):
-            with open(seed_path, "r", encoding="utf-8") as fh:
-                data = json.load(fh)
-            for item in data:
-                fields = item.get("fields", {})
-                summary = fields.get("summary", "seed")
-                description = fields.get("description", "")
-                issue_type = fields.get("issuetype", {}).get("name", "Task")
-                c.execute("INSERT INTO issues (key, summary, description, issue_type, created_on) VALUES (?, ?, ?, ?, datetime('now'))",
-                          (item.get("key"), summary, description, issue_type))
-            conn.commit()
-    conn.close()
-    # Ensure enhanced columns exist (priority, assignee, reporter, labels, components, updated_on)
-    conn = get_db_conn()
-    c = conn.cursor()
-    c.execute("PRAGMA table_info(issues)")
-    existing_cols = [r[1] for r in c.fetchall()]
-    alters = []
-    if "priority" not in existing_cols:
-        alters.append("ALTER TABLE issues ADD COLUMN priority TEXT")
-    if "assignee" not in existing_cols:
-        alters.append("ALTER TABLE issues ADD COLUMN assignee TEXT")
-    if "reporter" not in existing_cols:
-        alters.append("ALTER TABLE issues ADD COLUMN reporter TEXT")
-    if "labels" not in existing_cols:
-        alters.append("ALTER TABLE issues ADD COLUMN labels TEXT")
-    if "components" not in existing_cols:
-        alters.append("ALTER TABLE issues ADD COLUMN components TEXT")
-    if "updated_on" not in existing_cols:
-        alters.append("ALTER TABLE issues ADD COLUMN updated_on TEXT")
-    for s in alters:
-        try:
-            c.execute(s)
-        except Exception:
-            pass
-    conn.commit()
-    conn.close()
-
-
-def require_bearer(authorization: Optional[str] = Header(None)):
     if authorization is None or not authorization.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+        raise HTTPException(
+            status_code=401,
+            detail="Missing Authorization header. Required: Authorization: Bearer mock-jira-token-2025"
+        )
+    token = authorization[7:].strip()
+    if token != VALID_API_TOKEN:
+        raise HTTPException(
+            status_code=401,
+            detail=f"Invalid token. Only the mock API token is accepted. See /docs for the correct token."
+        )
 
 
-@app.post("/rest/api/3/issue", 
-          summary="Create Issue",
-          description="""
-          Create a new issue in the project.
-          
-          **Required fields:**
-          - `fields.summary`: Brief description of the issue
-          - `fields.issuetype.name`: Type of issue (Bug, Task, Story, etc.)
-          
-          **Optional fields:**
-          - `fields.description`: Detailed description
-          - `fields.assignee`: Username to assign issue to
-          - `fields.priority.name`: Priority level (Low, Medium, High, Critical)
-          - `fields.labels`: Array of label strings
-          - `fields.components`: Array of component strings
-          - `fields.reporter`: Username of reporter
-          
-          **Authentication:** Requires `Authorization: Bearer <token>` header.
-          
-          **Returns:** Created issue with generated key (e.g., QA-123) and full field data.
-          """,
-          tags=["Issues"],
-          response_model=IssueCreateResponse,
-          responses={
-              201: {"description": "Issue created successfully", "model": IssueCreateResponse},
-              400: {"description": "Invalid request payload"},
-              401: {"description": "Missing or invalid authorization"}
-          })
-async def create_issue(issue: IssueCreate, authorization: Optional[str] = Header(None)):
-    # JSON API: require bearer
-    if issue is None:
-        raise HTTPException(status_code=400, detail="Missing issue payload")
-    require_bearer(authorization)
-    fields = issue.fields
-    summary = fields.summary or "No summary"
-    description = fields.description or ""
-    issue_type = fields.issuetype.name if fields.issuetype else "Task"
-    priority = fields.priority.name if fields.priority else "Medium"
-    assignee = fields.assignee if fields.assignee else None
-    reporter = fields.reporter if fields.reporter else "mock-reporter"
-    labels = json.dumps(fields.labels) if fields.labels else "[]"
-    components = json.dumps(fields.components) if fields.components else "[]"
-
-    conn = get_db_conn()
-    c = conn.cursor()
-    # generate key like QA-<id>
-    c.execute("""INSERT INTO issues 
-                 (key, summary, description, issue_type, priority, assignee, reporter, labels, components, created_on, updated_on) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))""",
-              (None, summary, description, issue_type, priority, assignee, reporter, labels, components))
-    issue_id = c.lastrowid
-    key = f"QA-{issue_id}"
-    c.execute("UPDATE issues SET key=? WHERE id=?", (key, issue_id))
-    conn.commit()
-    conn.close()
-
-    # Build realistic response fields
-    created_ts = None
-    # fetch created value
-    conn = get_db_conn()
-    c = conn.cursor()
-    c.execute("SELECT created_on FROM issues WHERE id=?", (issue_id,))
-    row = c.fetchone()
-    if row:
-        created_ts = row["created_on"]
-    conn.close()
-
-    # If priority/assignee/reporter/labels/components are stored in DB, read them
-    conn = get_db_conn()
-    c = conn.cursor()
-    c.execute("SELECT priority, assignee, reporter, labels, components, updated_on FROM issues WHERE id=?", (issue_id,))
-    meta = c.fetchone()
-    conn.close()
-
-    resp = {
-        "id": {"id": str(issue_id)},
-        "key": key,
-        "self": f"/rest/api/3/issue/{key}",
-        "fields": {
-            "project": {"key": os.environ.get("JIRA_PROJECT_KEY", "QA"), "name": "QA Project"},
-            "summary": summary,
-            "description": description,
-            "issuetype": {"name": issue_type},
-            "priority": {"name": (meta[0] if meta and meta[0] else "Medium")},
-            "status": {"name": "To Do", "statusCategory": {"name": "To Do"}},
-            "assignee": ( {"displayName": meta[1]} if meta and meta[1] else None),
-            "reporter": ( {"displayName": meta[2]} if meta and meta[2] else {"accountId": "mock-reporter", "displayName": "Mock Reporter"}),
-            "created": created_ts,
-            "updated": created_ts,
-            "labels": (json.loads(meta[3]) if meta and meta[3] else []),
-            "components": (json.loads(meta[4]) if meta and meta[4] else []),
-            "comments": [],
-            "attachment": [],
-            "resolution": None
-        }
-    }
-
-    return JSONResponse(status_code=201, content=resp)
+def extract_text_from_adf(node: Any) -> str:
+    """Recursively extract plain text from an ADF document node."""
+    if isinstance(node, str):
+        return node
+    if isinstance(node, dict):
+        if node.get("type") == "text":
+            return node.get("text", "")
+        parts = []
+        for child in node.get("content", []):
+            parts.append(extract_text_from_adf(child))
+        return "\n".join(p for p in parts if p)
+    return ""
 
 
-# Form-based quick create from UI
-@app.post("/ui/create",
-          summary="Web UI - Quick Create Issue",
-          description="""
-          Form-based issue creation from the web UI.
-          
-          **Form Fields:**
-          - `summary`: Issue summary (required)
-          - `description`: Issue description (optional)
-          
-          **No authentication required** - for demos and quick testing.
-          
-          **Returns:** Redirect to the created issue detail page.
-          """,
-          tags=["UI"],
-          responses={
-              303: {"description": "Redirect to created issue detail page"}
-          })
-async def ui_create(summary: str = Form(...), description: str = Form("")):
-    conn = get_db_conn()
-    c = conn.cursor()
-    c.execute("INSERT INTO issues (key, summary, description, issue_type, created_on) VALUES (?, ?, ?, ?, datetime('now'))",
-              (None, summary, description, "Task"))
-    issue_id = c.lastrowid
-    key = f"QA-{issue_id}"
-    c.execute("UPDATE issues SET key=? WHERE id=?", (key, issue_id))
-    conn.commit()
-    conn.close()
-    return RedirectResponse(url=f"/ui/issue/{key}", status_code=303)
+def to_adf(text: Optional[str]) -> Optional[dict]:
+    """Wrap plain text in minimal ADF doc format."""
+    if not text:
+        return None
+    paragraphs = text.split("\n\n")
+    content = []
+    for para in paragraphs:
+        lines = para.strip()
+        if lines:
+            content.append({
+                "type": "paragraph",
+                "content": [{"type": "text", "text": lines}]
+            })
+    if not content:
+        return None
+    return {"type": "doc", "version": 1, "content": content}
 
 
-
-@app.get("/",
-         summary="Root Redirect",
-         description="Redirects to the web UI at `/ui`",
-         tags=["UI"],
-         responses={302: {"description": "Redirect to UI"}})
-async def root_redirect():
-    """Redirect root to the UI index."""
-    return RedirectResponse(url="/ui", status_code=302)
+def parse_description(raw: Any) -> str:
+    """Accept ADF dict or plain string, return plain text for storage."""
+    if raw is None:
+        return ""
+    if isinstance(raw, dict):
+        return extract_text_from_adf(raw)
+    return str(raw)
 
 
-@app.get("/rest/api/3/issue/{issue_key}",
-         summary="Get Issue",
-         description="""
-         Retrieve a single issue by its key (e.g., QA-123).
-         
-         **Path Parameters:**
-         - `issue_key`: The issue key (e.g., QA-1, QA-123)
-         
-         **Authentication:** Requires `Authorization: Bearer <token>` header.
-         
-         **Returns:** Complete issue data including all fields, timestamps, and metadata.
-         """,
-         tags=["Issues"],
-         response_model=IssueResponse,
-         responses={
-             200: {"description": "Issue retrieved successfully", "model": IssueResponse},
-             401: {"description": "Missing or invalid authorization"},
-             404: {"description": "Issue not found"}
-         })
-async def get_issue(issue_key: str = Path(..., example="QA-1", description="Issue key"), 
-                   authorization: Optional[str] = Header(None)):
-    require_bearer(authorization)
-    conn = get_db_conn()
-    c = conn.cursor()
-    # Select all columns explicitly to handle missing columns gracefully
-    c.execute("""SELECT id, key, summary, description, issue_type, created_on, 
-                        priority, assignee, reporter, labels, components, updated_on 
-                 FROM issues WHERE key=?""", (issue_key,))
-    row = c.fetchone()
-    conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="Issue not found")
-    
-    # Build response safely handling None values
-    created = row["created_on"] if row["created_on"] else None
-    updated = row["updated_on"] if row["updated_on"] else created
-    priority_name = row["priority"] if row["priority"] else "Medium"
+def parse_assignee_input(val: Any) -> Optional[str]:
+    if val is None:
+        return None
+    if isinstance(val, dict):
+        return val.get("displayName") or val.get("name") or val.get("id")
+    return str(val)
+
+
+def parse_reporter_input(val: Any) -> Optional[str]:
+    if val is None:
+        return None
+    if isinstance(val, dict):
+        return val.get("displayName") or val.get("name") or val.get("id")
+    return str(val)
+
+
+def parse_components_input(val: Any) -> List[dict]:
+    if not val:
+        return []
+    result = []
+    for c in val:
+        if isinstance(c, dict):
+            result.append({"name": c.get("name", c.get("id", ""))})
+        else:
+            result.append({"name": str(c)})
+    return result
+
+
+def parse_fix_versions_input(val: Any) -> List[dict]:
+    if not val:
+        return []
+    result = []
+    for v in val:
+        if isinstance(v, dict):
+            result.append({"name": v.get("name", v.get("id", ""))})
+        else:
+            result.append({"name": str(v)})
+    return result
+
+
+def parse_sprint_input(val: Any) -> Optional[str]:
+    if val is None:
+        return None
+    if isinstance(val, dict):
+        return val.get("name") or val.get("id")
+    if isinstance(val, list) and val:
+        first = val[0]
+        if isinstance(first, dict):
+            return first.get("name") or first.get("id")
+        return str(first)
+    return str(val)
+
+
+TRANSITIONS = {
+    "To Do": [
+        {"id": "2", "name": "In Progress", "to": {"name": "In Progress", "statusCategory": {"name": "In Progress"}}},
+    ],
+    "In Progress": [
+        {"id": "3", "name": "Done", "to": {"name": "Done", "statusCategory": {"name": "Done"}}},
+        {"id": "1", "name": "To Do", "to": {"name": "To Do", "statusCategory": {"name": "To Do"}}},
+    ],
+    "Done": [
+        {"id": "1", "name": "To Do", "to": {"name": "To Do", "statusCategory": {"name": "To Do"}}},
+        {"id": "2", "name": "In Progress", "to": {"name": "In Progress", "statusCategory": {"name": "In Progress"}}},
+    ],
+}
+
+TRANSITION_ID_TO_STATUS = {"1": "To Do", "2": "In Progress", "3": "Done"}
+
+
+def build_issue_response(row) -> dict:
+    """Build a full Jira-like issue response dict from a DB row."""
+    created = row["created_on"] or None
+    updated = row["updated_on"] or created
+    priority_name = row["priority"] or "Medium"
     assignee_val = row["assignee"]
     reporter_val = row["reporter"]
-    labels_val = row["labels"]
-    components_val = row["components"]
-    
-    # Parse JSON fields safely
+    status_val = row["status"] or "To Do"
+
     labels_parsed = []
-    components_parsed = []
-    if labels_val:
+    if row["labels"]:
         try:
-            labels_parsed = json.loads(labels_val)
-        except:
+            labels_parsed = json.loads(row["labels"])
+        except Exception:
             labels_parsed = []
-    if components_val:
+
+    components_parsed = []
+    if row["components"]:
         try:
-            components_parsed = json.loads(components_val)
-        except:
+            components_parsed = json.loads(row["components"])
+        except Exception:
             components_parsed = []
-    
-    return {
-        "id": row["id"],
+
+    fix_versions_parsed = []
+    if row["fix_versions"]:
+        try:
+            fix_versions_parsed = json.loads(row["fix_versions"])
+        except Exception:
+            fix_versions_parsed = []
+
+    description_adf = to_adf(row["description"])
+
+    environment_adf = to_adf(row["environment"]) if row["environment"] else None
+
+    sprint_val = row["sprint"]
+    sprint_field = None
+    if sprint_val:
+        sprint_field = [{"id": 1, "name": sprint_val, "state": "active"}]
+
+    result = {
+        "id": str(row["id"]),
         "key": row["key"],
         "self": f"/rest/api/3/issue/{row['key']}",
         "fields": {
-            "project": {"key": os.environ.get("JIRA_PROJECT_KEY", "QA"), "name": "QA Project"},
+            "project": {"key": PROJECT_KEY, "name": PROJECT_NAME},
             "summary": row["summary"],
-            "description": row["description"],
-            "issuetype": {"name": row["issue_type"]},
+            "description": description_adf,
+            "issuetype": {"name": row["issue_type"] or "Task"},
             "priority": {"name": priority_name},
-            "status": {"name": "To Do", "statusCategory": {"name": "To Do"}},
-            "assignee": ({"displayName": assignee_val} if assignee_val else None),
+            "status": {
+                "name": status_val,
+                "statusCategory": {"name": status_val}
+            },
+            "assignee": ({"accountId": assignee_val, "displayName": assignee_val} if assignee_val else None),
             "reporter": {"accountId": reporter_val or "mock-reporter", "displayName": reporter_val or "Mock Reporter"},
             "created": created,
             "updated": updated,
@@ -505,181 +396,272 @@ async def get_issue(issue_key: str = Path(..., example="QA-1", description="Issu
             "components": components_parsed,
             "comments": [],
             "attachment": [],
-            "resolution": None
+            "resolution": None,
+            # Story fields
+            "customfield_10016": row["story_points"],
+            "customfield_10020": sprint_field,
+            "customfield_10014": row["epic_link"],
+            # Bug fields
+            "environment": environment_adf,
+            "fixVersions": fix_versions_parsed,
+            "duedate": row["due_date"],
         }
     }
+    return result
 
 
-@app.get("/ui", 
-         response_class=HTMLResponse,
-         summary="Web UI - Issue List",
-         description="""
-         Simple web interface showing all issues with a quick-create form.
-         
-         **No authentication required** - for visual inspection and demos.
-         
-         **Features:**
-         - List all issues with links to details
-         - Quick-create form for new issues
-         - Real-time updates from API changes
-         """,
-         tags=["UI"],
-         responses={200: {"description": "HTML page with issue list"}})
-async def ui_index(request: Request):
+def apply_field_updates(fields: dict) -> dict:
+    """Parse a fields dict from PUT/PATCH body into DB column updates."""
+    updates = {}
+    if "summary" in fields:
+        updates["summary"] = fields["summary"]
+    if "description" in fields:
+        updates["description"] = parse_description(fields["description"])
+    if "issuetype" in fields and isinstance(fields["issuetype"], dict):
+        updates["issue_type"] = fields["issuetype"].get("name")
+    if "priority" in fields:
+        p = fields["priority"]
+        updates["priority"] = p.get("name") if isinstance(p, dict) else p
+    if "assignee" in fields:
+        updates["assignee"] = parse_assignee_input(fields["assignee"])
+    if "reporter" in fields:
+        updates["reporter"] = parse_reporter_input(fields["reporter"])
+    if "labels" in fields:
+        updates["labels"] = json.dumps(fields.get("labels", []))
+    if "components" in fields:
+        updates["components"] = json.dumps(parse_components_input(fields.get("components", [])))
+    if "status" in fields:
+        s = fields["status"]
+        updates["status"] = s.get("name") if isinstance(s, dict) else s
+    # Story fields
+    if "customfield_10016" in fields:
+        sp = fields["customfield_10016"]
+        updates["story_points"] = int(sp) if sp is not None else None
+    if "customfield_10020" in fields:
+        updates["sprint"] = parse_sprint_input(fields["customfield_10020"])
+    if "customfield_10014" in fields:
+        updates["epic_link"] = fields["customfield_10014"]
+    # Bug fields
+    if "environment" in fields:
+        updates["environment"] = parse_description(fields["environment"])
+    if "fixVersions" in fields:
+        updates["fix_versions"] = json.dumps(parse_fix_versions_input(fields.get("fixVersions", [])))
+    if "duedate" in fields:
+        updates["due_date"] = fields["duedate"]
+    return updates
+
+
+# ---------------------------------------------------------------------------
+# DB startup / migration
+# ---------------------------------------------------------------------------
+
+@app.on_event("startup")
+async def startup():
     conn = get_db_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM issues ORDER BY id DESC LIMIT 100")
-    rows = c.fetchall()
-    conn.close()
-    issues = [dict(r) for r in rows]
-    return templates.TemplateResponse("index.html", {"request": request, "issues": issues})
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS issues (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        key TEXT UNIQUE,
+        summary TEXT,
+        description TEXT,
+        issue_type TEXT DEFAULT 'Task',
+        priority TEXT DEFAULT 'Medium',
+        status TEXT DEFAULT 'To Do',
+        assignee TEXT,
+        reporter TEXT DEFAULT 'mock-reporter',
+        labels TEXT DEFAULT '[]',
+        components TEXT DEFAULT '[]',
+        story_points INTEGER,
+        sprint TEXT,
+        epic_link TEXT,
+        environment TEXT,
+        fix_versions TEXT DEFAULT '[]',
+        due_date TEXT,
+        created_on TEXT,
+        updated_on TEXT
+    )
+    """)
+    conn.commit()
 
-
-@app.get("/rest/api/3/search",
-         summary="Search Issues",
-         description="""
-         Search and list issues with pagination support.
-         
-         **Query Parameters:**
-         - `startAt`: Starting index for pagination (default: 0)
-         - `maxResults`: Maximum number of results to return (default: 50, max: 100)
-         
-         **Authentication:** Requires `Authorization: Bearer <token>` header.
-         
-         **Returns:** Paginated list of issues with summary information.
-         """,
-         tags=["Issues"],
-         response_model=SearchResponse,
-         responses={
-             200: {"description": "Issues retrieved successfully", "model": SearchResponse},
-             401: {"description": "Missing or invalid authorization"}
-         })
-async def search_issues(
-    startAt: int = Query(0, ge=0, description="Starting index for pagination"),
-    maxResults: int = Query(50, ge=1, le=100, description="Maximum results to return"),
-    authorization: Optional[str] = Header(None)
-):
-    require_bearer(authorization)
-    conn = get_db_conn()
-    c = conn.cursor()
-    c.execute("SELECT * FROM issues ORDER BY id DESC LIMIT ? OFFSET ?", (maxResults, startAt))
-    rows = c.fetchall()
-    conn.close()
-    issues = [{"id": r["id"], "key": r["key"], "fields": {"summary": r["summary"]}} for r in rows]
-    return {"startAt": startAt, "maxResults": maxResults, "total": len(issues), "issues": issues}
-
-
-
-@app.delete("/rest/api/3/issue/{issue_key}",
-           summary="Delete Issue",
-           description="""
-           Permanently delete an issue by its key.
-           
-           **Path Parameters:**
-           - `issue_key`: The issue key to delete (e.g., QA-1)
-           
-           **Authentication:** Requires `Authorization: Bearer <token>` header.
-           
-           **Returns:** No content (204) on successful deletion.
-           """,
-           tags=["Issues"],
-           responses={
-               204: {"description": "Issue deleted successfully"},
-               401: {"description": "Missing or invalid authorization"},
-               404: {"description": "Issue not found"}
-           })
-async def delete_issue(
-    issue_key: str = Path(..., example="QA-1", description="Issue key to delete"),
-    authorization: Optional[str] = Header(None)
-):
-    """Delete a single issue by key. Returns 204 if deleted, 404 if not found."""
-    require_bearer(authorization)
-    conn = get_db_conn()
-    c = conn.cursor()
-    c.execute("SELECT id FROM issues WHERE key=?", (issue_key,))
-    row = c.fetchone()
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Issue not found")
-    c.execute("DELETE FROM issues WHERE key=?", (issue_key,))
+    # Migration: add any missing columns to existing tables
+    c.execute("PRAGMA table_info(issues)")
+    existing_cols = {r[1] for r in c.fetchall()}
+    migrations = {
+        "priority": "ALTER TABLE issues ADD COLUMN priority TEXT DEFAULT 'Medium'",
+        "status": "ALTER TABLE issues ADD COLUMN status TEXT DEFAULT 'To Do'",
+        "assignee": "ALTER TABLE issues ADD COLUMN assignee TEXT",
+        "reporter": "ALTER TABLE issues ADD COLUMN reporter TEXT DEFAULT 'mock-reporter'",
+        "labels": "ALTER TABLE issues ADD COLUMN labels TEXT DEFAULT '[]'",
+        "components": "ALTER TABLE issues ADD COLUMN components TEXT DEFAULT '[]'",
+        "story_points": "ALTER TABLE issues ADD COLUMN story_points INTEGER",
+        "sprint": "ALTER TABLE issues ADD COLUMN sprint TEXT",
+        "epic_link": "ALTER TABLE issues ADD COLUMN epic_link TEXT",
+        "environment": "ALTER TABLE issues ADD COLUMN environment TEXT",
+        "fix_versions": "ALTER TABLE issues ADD COLUMN fix_versions TEXT DEFAULT '[]'",
+        "due_date": "ALTER TABLE issues ADD COLUMN due_date TEXT",
+        "updated_on": "ALTER TABLE issues ADD COLUMN updated_on TEXT",
+    }
+    for col, sql in migrations.items():
+        if col not in existing_cols:
+            try:
+                c.execute(sql)
+            except Exception:
+                pass
     conn.commit()
     conn.close()
+
+    # Seed if empty
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT COUNT(1) as cnt FROM issues")
+    if c.fetchone()[0] == 0:
+        seed_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "seed", "sample_issues.json"))
+        if os.path.exists(seed_path):
+            with open(seed_path, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+            for item in data:
+                f = item.get("fields", {})
+                c.execute("""INSERT INTO issues
+                    (key, summary, description, issue_type, priority, status,
+                     assignee, reporter, labels, components,
+                     story_points, sprint, epic_link,
+                     environment, fix_versions, due_date,
+                     created_on, updated_on)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))""",
+                    (
+                        item.get("key"),
+                        f.get("summary", ""),
+                        parse_description(f.get("description", "")),
+                        f.get("issuetype", {}).get("name", "Task"),
+                        f.get("priority", {}).get("name", "Medium") if isinstance(f.get("priority"), dict) else f.get("priority", "Medium"),
+                        f.get("status", "To Do"),
+                        parse_assignee_input(f.get("assignee")),
+                        parse_reporter_input(f.get("reporter")) or "mock-reporter",
+                        json.dumps(f.get("labels", [])),
+                        json.dumps(parse_components_input(f.get("components", []))),
+                        f.get("customfield_10016"),
+                        parse_sprint_input(f.get("customfield_10020")),
+                        f.get("customfield_10014"),
+                        parse_description(f.get("environment", "")),
+                        json.dumps(parse_fix_versions_input(f.get("fixVersions", []))),
+                        f.get("duedate"),
+                    ))
+            conn.commit()
+    conn.close()
+
+
+# ---------------------------------------------------------------------------
+# API Routes
+# ---------------------------------------------------------------------------
+
+@app.get("/", include_in_schema=False)
+async def root_redirect():
+    return RedirectResponse(url="/ui", status_code=302)
+
+
+@app.get("/health", response_model=HealthResponse, tags=["System"])
+async def health():
+    return {"status": "ok", "service": "jira-mock", "version": "2.0.0"}
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
     return Response(status_code=204)
 
 
-@app.patch("/rest/api/3/issue/{issue_key}",
-          summary="Update Issue", 
-          description="""
-          Update specific fields of an existing issue.
-          
-          **Path Parameters:**
-          - `issue_key`: The issue key to update (e.g., QA-1)
-          
-          **Updatable Fields:**
-          - `fields.summary`: Issue summary
-          - `fields.description`: Issue description  
-          - `fields.issuetype.name`: Issue type
-          - `fields.assignee`: Assignee username
-          - `fields.priority`: Priority name or object
-          - `fields.reporter`: Reporter username
-          - `fields.labels`: Array of labels
-          - `fields.components`: Array of components
-          
-          **Authentication:** Requires `Authorization: Bearer <token>` header.
-          
-          **Returns:** Updated issue with all current field values.
-          """,
-          tags=["Issues"],
-          response_model=IssueResponse,
-          responses={
-              200: {"description": "Issue updated successfully", "model": IssueResponse},
-              400: {"description": "Invalid request payload or no updatable fields"},
-              401: {"description": "Missing or invalid authorization"},
-              404: {"description": "Issue not found"}
-          })
-async def update_issue(
-    request: Request, 
-    issue_key: str = Path(..., example="QA-1", description="Issue key to update"),
+# --- Issues CRUD ---
+
+@app.post("/rest/api/3/issue", tags=["Issues"], status_code=201,
+          summary="Create Issue")
+async def create_issue(issue: IssueCreate, authorization: Optional[str] = Header(None)):
+    require_bearer(authorization)
+    f = issue.fields
+    summary = f.summary or "No summary"
+    description = parse_description(f.description)
+    issue_type = f.issuetype.name if f.issuetype else "Task"
+    priority = f.priority.name if f.priority else "Medium"
+    status = "To Do"
+    assignee = parse_assignee_input(f.assignee)
+    reporter = parse_reporter_input(f.reporter) or "mock-reporter"
+    labels = json.dumps(f.labels or [])
+    components = json.dumps(parse_components_input(f.components or []))
+    story_points = f.customfield_10016
+    sprint = parse_sprint_input(f.customfield_10020)
+    epic_link = f.customfield_10014
+    environment = parse_description(f.environment)
+    fix_versions = json.dumps(parse_fix_versions_input(f.fixVersions or []))
+    due_date = f.duedate
+
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("""INSERT INTO issues
+        (key, summary, description, issue_type, priority, status,
+         assignee, reporter, labels, components,
+         story_points, sprint, epic_link,
+         environment, fix_versions, due_date,
+         created_on, updated_on)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))""",
+        (None, summary, description, issue_type, priority, status,
+         assignee, reporter, labels, components,
+         story_points, sprint, epic_link,
+         environment, fix_versions, due_date))
+    issue_id = c.lastrowid
+    key = f"{PROJECT_KEY}-{issue_id}"
+    c.execute("UPDATE issues SET key=? WHERE id=?", (key, issue_id))
+    conn.commit()
+    c.execute("SELECT * FROM issues WHERE id=?", (issue_id,))
+    row = c.fetchone()
+    conn.close()
+
+    return JSONResponse(status_code=201, content=build_issue_response(row))
+
+
+@app.get("/rest/api/3/issue/{issue_key}", tags=["Issues"], summary="Get Issue")
+async def get_issue(
+    issue_key: str = Path(..., example="QA-1"),
     authorization: Optional[str] = Header(None)
 ):
-    """Update provided fields on an existing issue. Expects Jira-like payload {"fields": {...}}."""
+    require_bearer(authorization)
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM issues WHERE key=?", (issue_key,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    return build_issue_response(row)
+
+
+@app.put("/rest/api/3/issue/{issue_key}", tags=["Issues"], summary="Edit Issue",
+         status_code=204)
+async def edit_issue(
+    request: Request,
+    issue_key: str = Path(..., example="QA-1"),
+    authorization: Optional[str] = Header(None)
+):
+    """Real Jira uses PUT for edits; returns 204 No Content on success."""
     require_bearer(authorization)
     try:
         payload = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid JSON payload")
-    fields = payload.get("fields") if isinstance(payload, dict) else None
-    if not fields:
-        raise HTTPException(status_code=400, detail="Missing fields payload")
 
-    # allowed updatable columns: summary, description, issue_type
-    updates = {}
-    if "summary" in fields:
-        updates["summary"] = fields["summary"]
-    if "description" in fields:
-        updates["description"] = fields["description"]
-    if "issuetype" in fields and isinstance(fields["issuetype"], dict):
-        updates["issue_type"] = fields["issuetype"].get("name")
-    # optional updatable fields
-    if "priority" in fields:
-        updates["priority"] = fields["priority"].get("name") if isinstance(fields["priority"], dict) else fields["priority"]
-    if "assignee" in fields:
-        # accept string username or object
-        if isinstance(fields["assignee"], dict):
-            updates["assignee"] = fields["assignee"].get("name")
-        else:
-            updates["assignee"] = fields["assignee"]
-    if "reporter" in fields:
-        if isinstance(fields["reporter"], dict):
-            updates["reporter"] = fields["reporter"].get("name")
-        else:
-            updates["reporter"] = fields["reporter"]
-    if "labels" in fields:
-        # store JSON string of labels
-        updates["labels"] = json.dumps(fields.get("labels", []))
-    if "components" in fields:
-        updates["components"] = json.dumps(fields.get("components", []))
+    fields = payload.get("fields") or {}
+    update = payload.get("update") or {}
 
+    # Merge update block into fields (handle add/set/remove ops for labels etc.)
+    for field_name, ops in update.items():
+        if isinstance(ops, list):
+            for op in ops:
+                if "set" in op:
+                    fields[field_name] = op["set"]
+                elif "add" in op and field_name == "labels":
+                    fields.setdefault("labels", [])
+                    if isinstance(fields["labels"], list):
+                        fields["labels"].append(op["add"])
+
+    updates = apply_field_updates(fields)
     if not updates:
         raise HTTPException(status_code=400, detail="No updatable fields provided")
 
@@ -691,119 +673,331 @@ async def update_issue(
         conn.close()
         raise HTTPException(status_code=404, detail="Issue not found")
 
-    # build SET clause
-    set_clause = ", ".join([f"{k}=?" for k in updates.keys()])
+    set_clause = ", ".join([f"{k}=?" for k in updates.keys()]) + ", updated_on=datetime('now')"
     params = list(updates.values()) + [issue_key]
-    # update updated_on timestamp instead of overwriting created_on
-    set_clause_full = set_clause + ", updated_on=datetime('now')"
-    c.execute(f"UPDATE issues SET {set_clause_full} WHERE key=?", params)
+    c.execute(f"UPDATE issues SET {set_clause} WHERE key=?", params)
     conn.commit()
     conn.close()
-
-    # return updated issue
-    return await get_issue(issue_key, authorization=authorization)
+    return Response(status_code=204)
 
 
-@app.post("/admin/reset",
-          summary="Reset Database",
-          description="""
-          **⚠️ ADMIN OPERATION ⚠️**
-          
-          Reset the entire database and reload seed data from `shared/seed/sample_issues.json`.
-          This will permanently delete all existing issues and restore the original sample data.
-          
-          **Use Cases:**
-          - Clean up test data during development
-          - Reset to known state for demos
-          - Clear database after testing
-          
-          **Authentication:** Requires `Authorization: Bearer <token>` header.
-          
-          **Returns:** Confirmation message with reset status.
-          """,
-          tags=["Admin"],
-          response_model=ResetResponse,
-          responses={
-              200: {"description": "Database reset successfully", "model": ResetResponse},
-              401: {"description": "Missing or invalid authorization"}
-          })
-async def admin_reset(authorization: Optional[str] = Header(None)):
-    """Reset the database and reseed from shared/seed/sample_issues.json. Requires Authorization header."""
+@app.patch("/rest/api/3/issue/{issue_key}", tags=["Issues"], summary="Update Issue (PATCH)",
+           status_code=204)
+async def update_issue(
+    request: Request,
+    issue_key: str = Path(..., example="QA-1"),
+    authorization: Optional[str] = Header(None)
+):
+    """Backward-compatible PATCH endpoint — delegates to PUT logic."""
+    return await edit_issue(request, issue_key=issue_key, authorization=authorization)
+
+
+@app.delete("/rest/api/3/issue/{issue_key}", tags=["Issues"], summary="Delete Issue",
+            status_code=204)
+async def delete_issue(
+    issue_key: str = Path(..., example="QA-1"),
+    authorization: Optional[str] = Header(None)
+):
     require_bearer(authorization)
-    # remove DB file if exists
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT id FROM issues WHERE key=?", (issue_key,))
+    if not c.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Issue not found")
+    c.execute("DELETE FROM issues WHERE key=?", (issue_key,))
+    conn.commit()
+    conn.close()
+    return Response(status_code=204)
+
+
+# --- Transitions ---
+
+@app.get("/rest/api/3/issue/{issue_key}/transitions", tags=["Issues"],
+         summary="Get Transitions")
+async def get_transitions(
+    issue_key: str = Path(..., example="QA-1"),
+    authorization: Optional[str] = Header(None)
+):
+    require_bearer(authorization)
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT status FROM issues WHERE key=?", (issue_key,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="Issue not found")
+    current_status = row["status"] or "To Do"
+    return {"transitions": TRANSITIONS.get(current_status, [])}
+
+
+@app.post("/rest/api/3/issue/{issue_key}/transitions", tags=["Issues"],
+          summary="Transition Issue", status_code=204)
+async def transition_issue(
+    request: Request,
+    issue_key: str = Path(..., example="QA-1"),
+    authorization: Optional[str] = Header(None)
+):
+    require_bearer(authorization)
+    try:
+        payload = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON payload")
+
+    transition_id = str(payload.get("transition", {}).get("id", ""))
+    if transition_id not in TRANSITION_ID_TO_STATUS:
+        raise HTTPException(status_code=400, detail=f"Invalid transition id: {transition_id}")
+
+    new_status = TRANSITION_ID_TO_STATUS[transition_id]
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT id FROM issues WHERE key=?", (issue_key,))
+    if not c.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Issue not found")
+    c.execute("UPDATE issues SET status=?, updated_on=datetime('now') WHERE key=?",
+              (new_status, issue_key))
+    conn.commit()
+    conn.close()
+    return Response(status_code=204)
+
+
+# --- Search ---
+
+@app.get("/rest/api/3/search", tags=["Issues"], summary="Search Issues")
+async def search_issues(
+    jql: Optional[str] = Query(None, description="JQL filter, e.g. 'issuetype = Story'"),
+    startAt: int = Query(0, ge=0),
+    maxResults: int = Query(50, ge=1, le=100),
+    fields: Optional[str] = Query(None, description="Comma-separated fields to return"),
+    authorization: Optional[str] = Header(None)
+):
+    require_bearer(authorization)
+
+    conditions = []
+    params = []
+
+    if jql:
+        # Simple JQL parsing: issuetype = X / status = X / project = X
+        type_match = re.search(r'issuetype\s*=\s*["\']?(\w+)["\']?', jql, re.I)
+        status_match = re.search(r'status\s*=\s*["\']?([^"\'&]+?)["\']?(?:\s|$)', jql, re.I)
+        project_match = re.search(r'project\s*=\s*["\']?(\w+)["\']?', jql, re.I)
+
+        if type_match:
+            conditions.append("LOWER(issue_type) = LOWER(?)")
+            params.append(type_match.group(1))
+        if status_match:
+            conditions.append("LOWER(status) = LOWER(?)")
+            params.append(status_match.group(1).strip())
+        if project_match:
+            pass  # single project mock — ignore
+
+    where_clause = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute(f"SELECT COUNT(1) FROM issues {where_clause}", params)
+    total = c.fetchone()[0]
+    c.execute(f"SELECT * FROM issues {where_clause} ORDER BY id DESC LIMIT ? OFFSET ?",
+              params + [maxResults, startAt])
+    rows = c.fetchall()
+    conn.close()
+
+    issues = []
+    for r in rows:
+        resp = build_issue_response(r)
+        if fields:
+            wanted = set(fields.split(","))
+            resp["fields"] = {k: v for k, v in resp["fields"].items() if k in wanted}
+        issues.append(resp)
+
+    return {"startAt": startAt, "maxResults": maxResults, "total": total, "issues": issues}
+
+
+# --- Admin ---
+
+@app.post("/admin/reset", tags=["Admin"], summary="Reset Database")
+async def admin_reset(authorization: Optional[str] = Header(None)):
+    require_bearer(authorization)
     if os.path.exists(DB_PATH):
         try:
             os.remove(DB_PATH)
         except OSError:
             pass
-    # recreate and reseed by calling startup
     await startup()
     return {"status": "reset"}
 
 
-@app.get("/ui/issue/{key}", 
-         response_class=HTMLResponse,
-         summary="Web UI - Issue Detail",
-         description="""
-         Detailed view of a single issue with all fields displayed.
-         
-         **Path Parameters:**
-         - `key`: Issue key (e.g., QA-1)
-         
-         **No authentication required** - for visual inspection and demos.
-         
-         **Features:**
-         - Complete issue information display
-         - All fields including assignee, priority, labels, etc.
-         - Formatted timestamps and metadata
-         """,
-         tags=["UI"],
-         responses={
-             200: {"description": "HTML page with issue details"},
-             404: {"description": "Issue not found"}
-         })
+# ---------------------------------------------------------------------------
+# UI Routes
+# ---------------------------------------------------------------------------
+
+def _get_issue_for_ui(key: str) -> dict:
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM issues WHERE key=?", (key,))
+    row = c.fetchone()
+    conn.close()
+    if not row:
+        return None
+    r = build_issue_response(row)
+    issue = dict(r["fields"])
+    issue["key"] = r["key"]
+    issue["id"] = r["id"]
+    # Flatten description back to plain text for UI editing
+    issue["description_text"] = row["description"] or ""
+    issue["environment_text"] = row["environment"] or ""
+    issue["sprint_text"] = row["sprint"] or ""
+    issue["story_points"] = row["story_points"]
+    issue["epic_link"] = row["epic_link"]
+    issue["due_date_val"] = row["due_date"] or ""
+    return issue
+
+
+@app.get("/ui", response_class=HTMLResponse, tags=["UI"], summary="Issue List")
+async def ui_index(
+    request: Request,
+    filter_type: Optional[str] = Query(None),
+    filter_status: Optional[str] = Query(None)
+):
+    conn = get_db_conn()
+    c = conn.cursor()
+    conditions = []
+    params = []
+    if filter_type:
+        conditions.append("LOWER(issue_type) = LOWER(?)")
+        params.append(filter_type)
+    if filter_status:
+        conditions.append("LOWER(status) = LOWER(?)")
+        params.append(filter_status)
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+    c.execute(f"SELECT * FROM issues {where} ORDER BY id DESC LIMIT 200", params)
+    rows = c.fetchall()
+    conn.close()
+    issues = [dict(r) for r in rows]
+    # Parse labels for display
+    for iss in issues:
+        try:
+            iss["labels_list"] = json.loads(iss.get("labels") or "[]")
+        except Exception:
+            iss["labels_list"] = []
+    return templates.TemplateResponse("index.html", {
+        "request": request,
+        "issues": issues,
+        "filter_type": filter_type or "",
+        "filter_status": filter_status or "",
+    })
+
+
+@app.post("/ui/create", tags=["UI"], summary="Create Issue (Form)")
+async def ui_create(
+    summary: str = Form(...),
+    description: str = Form(""),
+    issue_type: str = Form("Story"),
+    priority: str = Form("Medium"),
+    assignee: str = Form(""),
+    story_points: str = Form(""),
+    sprint: str = Form(""),
+    epic_link: str = Form(""),
+    environment: str = Form(""),
+    fix_versions: str = Form(""),
+    due_date: str = Form(""),
+):
+    sp = int(story_points) if story_points.strip().isdigit() else None
+    fv = json.dumps([{"name": v.strip()} for v in fix_versions.split(",") if v.strip()]) if fix_versions.strip() else "[]"
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("""INSERT INTO issues
+        (key, summary, description, issue_type, priority, status,
+         assignee, reporter, labels, components,
+         story_points, sprint, epic_link,
+         environment, fix_versions, due_date,
+         created_on, updated_on)
+        VALUES (?,?,?,?,?,'To Do',?,?,?,?,?,?,?,?,?,?,datetime('now'),datetime('now'))""",
+        (None, summary, description, issue_type, priority,
+         assignee or None, "mock-reporter", "[]", "[]",
+         sp, sprint or None, epic_link or None,
+         environment or None, fv, due_date or None))
+    issue_id = c.lastrowid
+    key = f"{PROJECT_KEY}-{issue_id}"
+    c.execute("UPDATE issues SET key=? WHERE id=?", (key, issue_id))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url=f"/ui/issue/{key}", status_code=303)
+
+
+@app.get("/ui/issue/{key}", response_class=HTMLResponse, tags=["UI"],
+         summary="Issue Detail")
 async def ui_issue_detail(request: Request, key: str):
-    # Reuse API representation to build template context (keeps UI consistent with API)
-    api_issue = await get_issue(key, authorization="Bearer internal")
-
-    # api_issue has shape {id, key, self, fields: {...}}
-    fields = api_issue.get("fields", {})
-    # Flatten for template: top-level keys used by template (project, reporter, assignee, etc.)
-    issue = dict(fields)
-    issue["key"] = api_issue.get("key")
-    issue["id"] = api_issue.get("id")
-    # Ensure nested objects exist for template safety
-    issue.setdefault("project", {"key": os.environ.get("JIRA_PROJECT_KEY", "QA"), "name": "QA Project"})
-    issue.setdefault("reporter", {"accountId": "mock-reporter", "displayName": "Mock Reporter"})
-    issue.setdefault("assignee", None)
-    issue.setdefault("labels", [])
-    issue.setdefault("components", [])
-    issue.setdefault("comments", [])
-    issue.setdefault("attachment", [])
-
+    issue = _get_issue_for_ui(key)
+    if issue is None:
+        raise HTTPException(status_code=404, detail="Issue not found")
     return templates.TemplateResponse("issue_detail.html", {"request": request, "issue": issue})
 
 
-@app.get("/health",
-         summary="Health Check",
-         description="""
-         Simple health check endpoint to verify the service is running.
-         
-         **No authentication required.**
-         
-         **Returns:** Service status information.
-         """,
-         tags=["System"],
-         response_model=HealthResponse,
-         responses={
-             200: {"description": "Service is healthy", "model": HealthResponse}
-         })
-async def health():
-    """Health check endpoint - no authentication required."""
-    return {"status": "ok", "service": "jira-mock", "version": "1.0.0"}
+@app.post("/ui/issue/{key}/edit", tags=["UI"], summary="Edit Issue (Form)")
+async def ui_issue_edit(
+    key: str,
+    summary: str = Form(...),
+    description: str = Form(""),
+    priority: str = Form("Medium"),
+    assignee: str = Form(""),
+    status: str = Form("To Do"),
+    story_points: str = Form(""),
+    sprint: str = Form(""),
+    epic_link: str = Form(""),
+    environment: str = Form(""),
+    fix_versions: str = Form(""),
+    due_date: str = Form(""),
+    labels: str = Form(""),
+):
+    sp = int(story_points) if story_points.strip().isdigit() else None
+    fv = json.dumps([{"name": v.strip()} for v in fix_versions.split(",") if v.strip()]) if fix_versions.strip() else "[]"
+    labels_list = json.dumps([l.strip() for l in labels.split(",") if l.strip()])
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT id FROM issues WHERE key=?", (key,))
+    if not c.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Issue not found")
+    c.execute("""UPDATE issues SET
+        summary=?, description=?, priority=?, assignee=?, status=?,
+        story_points=?, sprint=?, epic_link=?,
+        environment=?, fix_versions=?, due_date=?,
+        labels=?, updated_on=datetime('now')
+        WHERE key=?""",
+        (summary, description, priority, assignee or None, status,
+         sp, sprint or None, epic_link or None,
+         environment or None, fv, due_date or None,
+         labels_list, key))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url=f"/ui/issue/{key}", status_code=303)
 
-# Favicon handler
-@app.get("/favicon.ico", include_in_schema=False)
-async def favicon():
-    """Return empty response for favicon requests."""
-    return Response(status_code=204)
+
+@app.post("/ui/issue/{key}/transition", tags=["UI"], summary="Transition Status (Form)")
+async def ui_transition(key: str, status: str = Form(...)):
+    valid = {"To Do", "In Progress", "Done"}
+    if status not in valid:
+        raise HTTPException(status_code=400, detail="Invalid status")
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("SELECT id FROM issues WHERE key=?", (key,))
+    if not c.fetchone():
+        conn.close()
+        raise HTTPException(status_code=404, detail="Issue not found")
+    c.execute("UPDATE issues SET status=?, updated_on=datetime('now') WHERE key=?",
+              (status, key))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url=f"/ui/issue/{key}", status_code=303)
+
+
+@app.post("/ui/issue/{key}/delete", tags=["UI"], summary="Delete Issue (Form)")
+async def ui_delete(key: str):
+    conn = get_db_conn()
+    c = conn.cursor()
+    c.execute("DELETE FROM issues WHERE key=?", (key,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/ui", status_code=303)

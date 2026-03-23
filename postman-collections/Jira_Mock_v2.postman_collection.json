@@ -1,0 +1,925 @@
+{
+  "info": {
+    "_postman_id": "jira-mock-v2-collection-2025",
+    "name": "Jira Mock API v2 – Training Collection",
+    "description": "# Jira Mock API – Student Training Collection\n\nUse this collection to practice interacting with the Jira Mock Service running locally.\n\n## 🔑 Authentication\nEvery API request requires:\n```\nAuthorization: Bearer mock-jira-token-2025\n```\nThis is already configured in the **Jira Mock – Local** environment. Just select it and you're good to go.\n\n## 🚀 Quick Start\n1. Import this collection **and** the `Jira_Mock_v2.postman_environment.json` file\n2. Select the **Jira Mock – Local** environment (top-right dropdown)\n3. Make sure the Jira Mock server is running on `http://localhost:4001`\n4. Run **Health Check** first to verify the server is up\n5. Run **Create Story** — the response `key` is auto-saved to `{{created_story_key}}`\n6. Use that variable in **Read Story**, **Edit Story**, etc.\n\n## 📚 API Groups\n- **System** — health check\n- **Story** — create, read, edit (PUT), edit (PATCH), delete, transition\n- **Bug** — create, read, edit (PUT), edit (PATCH), delete, transition\n- **Search** — list all, filter by type, filter by status (JQL)\n- **Admin** — reset database to seed data",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [],
+  "item": [
+
+    {
+      "name": "System",
+      "description": "Service health and metadata",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verify the Jira Mock server is running. No auth required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"ok\",\n  \"service\": \"jira-mock\",\n  \"version\": \"2.0.0\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Story",
+      "description": "CRUD operations for Story issue type.\n\nAll requests use:\n`Authorization: Bearer {{api_token}}`",
+      "item": [
+
+        {
+          "name": "Create Story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('created_story_key', json.key);",
+                  "    pm.environment.set('issue_key', json.key);",
+                  "    console.log('Story created:', json.key);",
+                  "    pm.test('Story created with 201', () => pm.response.to.have.status(201));",
+                  "    pm.test('Key starts with QA-', () => pm.expect(json.key).to.match(/^QA-/));",
+                  "    pm.test('Issue type is Story', () => pm.expect(json.fields.issuetype.name).to.eql('Story'));",
+                  "    pm.test('Story points set', () => pm.expect(json.fields.customfield_10016).to.eql(5));",
+                  "    pm.test('Sprint set', () => pm.expect(json.fields.customfield_10020[0].name).to.eql('Sprint 1'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": {\n    \"project\": {\"key\": \"QA\"},\n    \"summary\": \"User can log in with valid credentials\",\n    \"description\": \"As a user, I want to log in to the application so that I can access my dashboard.\\n\\nACCEPTANCE CRITERIA\\nAC1 - Given I enter valid credentials, when I click Login, then I am redirected to the dashboard.\\nAC2 - Given I enter an invalid password, then I see an error message 'Invalid credentials'.\\nAC3 - Given I leave the username empty, then I see a 'Required' validation message.\",\n    \"issuetype\": {\"name\": \"Story\"},\n    \"priority\": {\"name\": \"High\"},\n    \"assignee\": \"jane.smith\",\n    \"labels\": [\"auth\", \"ui\"],\n    \"components\": [{\"name\": \"Frontend\"}],\n    \"customfield_10016\": 5,\n    \"customfield_10020\": \"Sprint 1\",\n    \"customfield_10014\": null\n  }\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue"]
+            },
+            "description": "Create a new Story.\n\n**Auto-saves** the created issue `key` to `{{created_story_key}}` and `{{issue_key}}` environment variables.\n\n### Story-specific fields\n| Field | Description |\n|-------|-------------|\n| `customfield_10016` | Story Points (integer) |\n| `customfield_10020` | Sprint name (string) |\n| `customfield_10014` | Epic Link – key of parent epic |\n\n**Auth:** `Bearer {{api_token}}`"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": \"8\",\n  \"key\": \"QA-8\",\n  \"self\": \"/rest/api/3/issue/QA-8\",\n  \"fields\": {\n    \"project\": {\"key\": \"QA\", \"name\": \"QA Project\"},\n    \"summary\": \"User can log in with valid credentials\",\n    \"description\": {\n      \"type\": \"doc\", \"version\": 1,\n      \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"As a user...\"}]}]\n    },\n    \"issuetype\": {\"name\": \"Story\"},\n    \"priority\": {\"name\": \"High\"},\n    \"status\": {\"name\": \"To Do\", \"statusCategory\": {\"name\": \"To Do\"}},\n    \"assignee\": {\"accountId\": \"jane.smith\", \"displayName\": \"jane.smith\"},\n    \"reporter\": {\"accountId\": \"mock-reporter\", \"displayName\": \"mock-reporter\"},\n    \"created\": \"2025-09-06 12:00:00\",\n    \"updated\": \"2025-09-06 12:00:00\",\n    \"labels\": [\"auth\", \"ui\"],\n    \"components\": [],\n    \"customfield_10016\": 5,\n    \"customfield_10020\": [{\"id\": 1, \"name\": \"Sprint 1\", \"state\": \"active\"}],\n    \"customfield_10014\": null,\n    \"environment\": null,\n    \"fixVersions\": [],\n    \"duedate\": null\n  }\n}"
+            },
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Invalid token. Only the mock API token is accepted. See /docs for the correct token.\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Read Story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Has key', () => pm.expect(json.key).to.be.a('string'));",
+                  "pm.test('Has summary', () => pm.expect(json.fields.summary).to.be.a('string'));",
+                  "pm.test('Description is ADF doc', () => pm.expect(json.fields.description.type).to.eql('doc'));",
+                  "pm.test('Has status', () => pm.expect(json.fields.status.name).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Fetch a single issue by key. Uses `{{issue_key}}` variable (auto-set after Create Story).\n\nThe `description` field is returned in **Atlassian Document Format (ADF)** — matching real Jira Cloud."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Edit Story – PUT (full edit)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 No Content', () => pm.response.to.have.status(204));",
+                  "pm.test('Empty body', () => pm.expect(pm.response.text()).to.eql(''));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": {\n    \"summary\": \"User can log in with valid credentials [UPDATED]\",\n    \"priority\": {\"name\": \"Critical\"},\n    \"assignee\": \"john.doe\",\n    \"labels\": [\"auth\", \"regression\", \"critical\"],\n    \"customfield_10016\": 8,\n    \"customfield_10020\": \"Sprint 2\"\n  }\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Edit an issue using **PUT** — the method real Jira Cloud uses.\n\nReturns **204 No Content** on success (same as real Jira).\n\nYou can update any subset of fields. Only provided fields are changed."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Edit Story – PATCH (partial update)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": {\n    \"customfield_10016\": 13,\n    \"customfield_10014\": \"QA-1\"\n  }\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Partial update via PATCH. Returns **204 No Content**. Kept for backward compatibility — prefer PUT for real Jira parity."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Get Transitions (Story)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Has transitions array', () => pm.expect(json.transitions).to.be.an('array'));",
+                  "if (json.transitions.length > 0) {",
+                  "    pm.environment.set('transition_id', json.transitions[0].id);",
+                  "    console.log('Available transitions:', json.transitions.map(t => t.name).join(', '));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}/transitions",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}", "transitions"]
+            },
+            "description": "Get the available status transitions for the current issue status.\n\n| Current Status | Available Transitions |\n|---|---|\n| To Do | In Progress |\n| In Progress | Done, To Do |\n| Done | To Do, In Progress |\n\nThe first transition ID is auto-saved to `{{transition_id}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK – from To Do",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"transitions\": [\n    {\n      \"id\": \"2\",\n      \"name\": \"In Progress\",\n      \"to\": {\"name\": \"In Progress\", \"statusCategory\": {\"name\": \"In Progress\"}}\n    }\n  ]\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Transition Story → In Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transition\": {\"id\": \"2\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}/transitions",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}", "transitions"]
+            },
+            "description": "Move the issue to **In Progress** (transition id=2).\n\n### Transition IDs\n| ID | Target Status |\n|----|---------------|\n| 1  | To Do |\n| 2  | In Progress |\n| 3  | Done |"
+          },
+          "response": []
+        },
+
+        {
+          "name": "Transition Story → Done",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transition\": {\"id\": \"3\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}/transitions",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}", "transitions"]
+            },
+            "description": "Move the issue to **Done** (transition id=3). Must be In Progress first."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Delete Story",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 – deleted', () => pm.response.to.have.status(204));",
+                  "pm.environment.unset('created_story_key');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Permanently delete an issue. Returns **204 No Content**.\n\nAfter this, a GET on the same key returns **404**."
+          },
+          "response": []
+        }
+
+      ]
+    },
+
+    {
+      "name": "Bug",
+      "description": "CRUD operations for Bug issue type.",
+      "item": [
+
+        {
+          "name": "Create Bug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var json = pm.response.json();",
+                  "    pm.environment.set('created_bug_key', json.key);",
+                  "    pm.environment.set('issue_key', json.key);",
+                  "    console.log('Bug created:', json.key);",
+                  "    pm.test('Bug created with 201', () => pm.response.to.have.status(201));",
+                  "    pm.test('Key starts with QA-', () => pm.expect(json.key).to.match(/^QA-/));",
+                  "    pm.test('Issue type is Bug', () => pm.expect(json.fields.issuetype.name).to.eql('Bug'));",
+                  "    pm.test('fixVersions set', () => pm.expect(json.fields.fixVersions).to.have.length.above(0));",
+                  "    pm.test('duedate set', () => pm.expect(json.fields.duedate).to.be.a('string'));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": {\n    \"project\": {\"key\": \"QA\"},\n    \"summary\": \"Login button unresponsive on first click in Safari\",\n    \"description\": \"When using Safari 17 on iOS, the login button does not respond on the first tap. A second tap is required to trigger authentication.\\n\\nSteps to Reproduce:\\n1. Open Safari 17 on iOS 17\\n2. Navigate to the login page\\n3. Enter valid credentials\\n4. Tap the Login button once\\n\\nExpected: User is authenticated and redirected to dashboard.\\nActual: Nothing happens. Second tap works.\",\n    \"issuetype\": {\"name\": \"Bug\"},\n    \"priority\": {\"name\": \"Critical\"},\n    \"assignee\": \"bob.tester\",\n    \"labels\": [\"safari\", \"ios\", \"regression\"],\n    \"components\": [{\"name\": \"Frontend\"}],\n    \"environment\": \"Production – Safari 17, iOS 17.4, iPhone 15 Pro\",\n    \"fixVersions\": [{\"name\": \"v1.3.1\"}, {\"name\": \"v1.4.0\"}],\n    \"duedate\": \"2025-10-31\"\n  }\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue"]
+            },
+            "description": "Create a new Bug.\n\n**Auto-saves** the created issue `key` to `{{created_bug_key}}` and `{{issue_key}}`.\n\n### Bug-specific fields\n| Field | Description |\n|-------|-------------|\n| `environment` | Where the bug occurs (plain text or ADF doc) |\n| `fixVersions` | Array of `{\"name\": \"...\"}` version objects |\n| `duedate` | ISO date string `YYYY-MM-DD` |"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"id\": \"10\",\n  \"key\": \"QA-10\",\n  \"self\": \"/rest/api/3/issue/QA-10\",\n  \"fields\": {\n    \"issuetype\": {\"name\": \"Bug\"},\n    \"priority\": {\"name\": \"Critical\"},\n    \"status\": {\"name\": \"To Do\"},\n    \"environment\": {\"type\": \"doc\", \"version\": 1, \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Production – Safari 17, iOS 17.4\"}]}]},\n    \"fixVersions\": [{\"name\": \"v1.3.1\"}, {\"name\": \"v1.4.0\"}],\n    \"duedate\": \"2025-10-31\"\n  }\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Read Bug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Issue type is Bug', () => pm.expect(json.fields.issuetype.name).to.eql('Bug'));",
+                  "pm.test('Environment field present', () => pm.expect(json.fields.environment).to.not.be.null);",
+                  "pm.test('fixVersions is array', () => pm.expect(json.fields.fixVersions).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Fetch a Bug by key. Uses `{{issue_key}}` (auto-set by Create Bug)."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Edit Bug – PUT",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": {\n    \"summary\": \"Login button unresponsive on first click in Safari [CONFIRMED]\",\n    \"priority\": {\"name\": \"Highest\"},\n    \"environment\": \"Production & Staging – Safari 17+, iOS 17.x\",\n    \"fixVersions\": [{\"name\": \"v1.3.1\"}],\n    \"duedate\": \"2025-10-15\",\n    \"labels\": [\"safari\", \"ios\", \"regression\", \"confirmed\"]\n  }\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Edit a Bug using PUT. Returns **204 No Content**."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Edit Bug – PATCH",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": {\n    \"assignee\": \"jane.smith\",\n    \"duedate\": \"2025-09-30\"\n  }\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Partial update via PATCH. Returns **204 No Content**."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Transition Bug → In Progress",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transition\": {\"id\": \"2\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}/transitions",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}", "transitions"]
+            },
+            "description": "Move Bug to In Progress."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Transition Bug → Done",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transition\": {\"id\": \"3\"}\n}",
+              "options": {"raw": {"language": "json"}}
+            },
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}/transitions",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}", "transitions"]
+            },
+            "description": "Move Bug to Done."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Delete Bug",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 204 – deleted', () => pm.response.to.have.status(204));",
+                  "pm.environment.unset('created_bug_key');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/{{issue_key}}",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "{{issue_key}}"]
+            },
+            "description": "Permanently delete a Bug. Returns **204 No Content**."
+          },
+          "response": []
+        }
+
+      ]
+    },
+
+    {
+      "name": "Search (JQL)",
+      "description": "Search and filter issues. Real Jira Cloud uses JQL (Jira Query Language). This mock supports a simplified JQL subset.",
+      "item": [
+
+        {
+          "name": "List All Issues",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Has total count', () => pm.expect(json.total).to.be.a('number'));",
+                  "pm.test('Has issues array', () => pm.expect(json.issues).to.be.an('array'));",
+                  "pm.test('Pagination fields present', () => {",
+                  "    pm.expect(json.startAt).to.exist;",
+                  "    pm.expect(json.maxResults).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/search?startAt=0&maxResults=50",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "search"],
+              "query": [
+                {"key": "startAt",    "value": "0"},
+                {"key": "maxResults", "value": "50"}
+              ]
+            },
+            "description": "Paginated list of all issues.\n\n| Param | Default | Max |\n|-------|---------|-----|\n| `startAt` | 0 | — |\n| `maxResults` | 50 | 100 |"
+          },
+          "response": []
+        },
+
+        {
+          "name": "Search – Stories Only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('All results are Stories', () => {",
+                  "    json.issues.forEach(i => pm.expect(i.fields.issuetype.name).to.eql('Story'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/search?jql=issuetype%3DStory",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "search"],
+              "query": [
+                {"key": "jql", "value": "issuetype=Story", "description": "Filter to Story type only"}
+              ]
+            },
+            "description": "JQL: `issuetype = Story`\n\nReturns only Story issues."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Search – Bugs Only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('All results are Bugs', () => {",
+                  "    json.issues.forEach(i => pm.expect(i.fields.issuetype.name).to.eql('Bug'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/search?jql=issuetype%3DBug",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "search"],
+              "query": [
+                {"key": "jql", "value": "issuetype=Bug"}
+              ]
+            },
+            "description": "JQL: `issuetype = Bug`\n\nReturns only Bug issues."
+          },
+          "response": []
+        },
+
+        {
+          "name": "Search – In Progress Issues",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('All results are In Progress', () => {",
+                  "    json.issues.forEach(i => pm.expect(i.fields.status.name).to.eql('In Progress'));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/search?jql=status%3D%22In+Progress%22",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "search"],
+              "query": [
+                {"key": "jql", "value": "status=\"In Progress\""}
+              ]
+            },
+            "description": "JQL: `status = \"In Progress\"`"
+          },
+          "response": []
+        },
+
+        {
+          "name": "Search – Done Issues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/search?jql=status%3DDone",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "search"],
+              "query": [
+                {"key": "jql", "value": "status=Done"}
+              ]
+            },
+            "description": "JQL: `status = Done`"
+          },
+          "response": []
+        }
+
+      ]
+    },
+
+    {
+      "name": "Error Cases",
+      "description": "Verify the API returns correct error codes. Use these to understand how to handle errors in your AI agent code.",
+      "item": [
+
+        {
+          "name": "401 – No Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "var json = pm.response.json();",
+                  "pm.test('Error detail present', () => pm.expect(json.detail).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {"type": "noauth"},
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/QA-1",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "QA-1"]
+            },
+            "description": "Request with **no Authorization header** → should return 401."
+          },
+          "response": [
+            {
+              "name": "401 Unauthorized",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Missing Authorization header. Required: Authorization: Bearer mock-jira-token-2025\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "401 – Wrong Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "var json = pm.response.json();",
+                  "pm.test('Invalid token message', () => pm.expect(json.detail).to.include('Invalid token'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "wrong-token-abc", "type": "string"}]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/QA-1",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "QA-1"]
+            },
+            "description": "Request with a **wrong Bearer token** → should return 401."
+          },
+          "response": [
+            {
+              "name": "401 Wrong Token",
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Invalid token. Only the mock API token is accepted. See /docs for the correct token.\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "404 – Issue Not Found",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "var json = pm.response.json();",
+                  "pm.test('Not found message', () => pm.expect(json.detail).to.eql('Issue not found'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/rest/api/3/issue/QA-99999",
+              "host": ["{{base_url}}"],
+              "path": ["rest", "api", "3", "issue", "QA-99999"]
+            },
+            "description": "Request for a **non-existent issue key** → should return 404."
+          },
+          "response": [
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"detail\": \"Issue not found\"\n}"
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "Admin",
+      "description": "⚠️ Admin operations — use with caution. Resets all data.",
+      "item": [
+        {
+          "name": "Reset Database",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "var json = pm.response.json();",
+                  "pm.test('Reset confirmed', () => pm.expect(json.status).to.eql('reset'));",
+                  "pm.environment.unset('created_story_key');",
+                  "pm.environment.unset('created_bug_key');",
+                  "pm.environment.set('issue_key', 'QA-1');",
+                  "console.log('Database reset. Seed data restored.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/admin/reset",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "reset"]
+            },
+            "description": "⚠️ **Wipes the entire database** and restores the 7 seed issues.\n\nUse this to reset to a clean state between practice sessions.\n\nAlso clears `created_story_key` and `created_bug_key` from environment."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"reset\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+
+  ]
+}

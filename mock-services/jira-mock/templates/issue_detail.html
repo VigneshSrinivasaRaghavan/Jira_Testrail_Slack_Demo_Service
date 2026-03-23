@@ -1,123 +1,414 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Jira Mock - Issue {{ issue.key }}</title>
-    <style>
-      body { font-family: Arial, sans-serif; margin: 40px; }
-      .meta { color: #666; font-size: 14px; margin-bottom: 12px }
-      .section { margin-top: 18px; }
-      .label { font-weight: bold; }
-      .chip { display:inline-block; padding:2px 8px; background:#eee; border-radius:12px; margin-right:6px }
-      .grid { display:flex; gap:24px }
-      .left { flex:1 }
-      .right { width:300px }
-      pre { background:#f8f8f8; padding:12px }
-    </style>
-  </head>
-  <body>
-    <h1>{{ issue.key }} - {{ issue.summary }}</h1>
-    <div class="meta">
-      <span class="label">Status:</span> To Do &nbsp;|&nbsp;
-      <span class="label">Priority:</span> Medium &nbsp;|&nbsp;
-      <span class="label">Reporter:</span> Mock Reporter
+{% extends "base.html" %}
+
+{% block title %}{{ issue.key }} – {{ issue.summary }}{% endblock %}
+
+{% macro status_class(s) %}{% if s == 'In Progress' %}status-inprogress{% elif s == 'Done' %}status-done{% else %}status-todo{% endif %}{% endmacro %}
+{% macro type_class(t) %}{% set tl = t | lower %}{% if tl == 'story' %}type-story{% elif tl == 'bug' %}type-bug{% else %}type-task{% endif %}{% endmacro %}
+{% macro type_letter(t) %}{% set tl = t | lower %}{% if tl == 'story' %}S{% elif tl == 'bug' %}B{% else %}T{% endif %}{% endmacro %}
+
+{% block content %}
+{% set itype = (issue.issuetype.name if issue.issuetype else 'Task') %}
+{% set istatus = (issue.status.name if issue.status is mapping else issue.status) or 'To Do' %}
+
+<!-- Breadcrumb -->
+<div class="detail-breadcrumb">
+  <a href="/ui">Projects</a>
+  <span class="sep">/</span>
+  <a href="/ui">QA Project</a>
+  <span class="sep">/</span>
+  <a href="/ui">Backlog</a>
+  <span class="sep">/</span>
+  <span>{{ issue.key }}</span>
+</div>
+
+<!-- Header -->
+<div class="detail-header">
+  <div style="flex:1">
+    <div class="detail-type-key">
+      <span class="issue-type-icon {{ type_class(itype) }}" title="{{ itype }}">{{ type_letter(itype) }}</span>
+      <span class="detail-key">{{ issue.key }}</span>
+      <span style="font-size:12px;color:var(--jira-muted)">· {{ itype }}</span>
     </div>
+    <h1 class="detail-title">{{ issue.summary }}</h1>
+  </div>
+  <div style="display:flex;gap:8px;flex-shrink:0;align-items:flex-start;margin-top:8px">
+    <button class="btn btn-secondary btn-sm" onclick="openEditModal()">Edit</button>
+    <button class="btn btn-danger btn-sm" onclick="openDeleteModal()">Delete</button>
+  </div>
+</div>
 
-    <div class="grid">
-      <div class="left">
-        <div class="section">
-          <div class="label">Description</div>
-          <div style="white-space: pre-wrap;">{{ issue.description }}</div>
-        </div>
+<!-- Status Bar + Transitions -->
+<div class="detail-status-bar">
+  <span class="status-badge {{ status_class(istatus) }}">{{ istatus }}</span>
+  <span style="color:var(--jira-muted);font-size:12px">Transition to:</span>
+  {% if istatus != 'In Progress' %}
+  <form method="post" action="/ui/issue/{{ issue.key }}/transition" style="display:inline">
+    <input type="hidden" name="status" value="In Progress">
+    <button type="submit" class="status-transition-btn to-inprogress">In Progress</button>
+  </form>
+  {% endif %}
+  {% if istatus != 'Done' %}
+  <form method="post" action="/ui/issue/{{ issue.key }}/transition" style="display:inline">
+    <input type="hidden" name="status" value="Done">
+    <button type="submit" class="status-transition-btn to-done">Done</button>
+  </form>
+  {% endif %}
+  {% if istatus != 'To Do' %}
+  <form method="post" action="/ui/issue/{{ issue.key }}/transition" style="display:inline">
+    <input type="hidden" name="status" value="To Do">
+    <button type="submit" class="status-transition-btn to-todo">Reopen</button>
+  </form>
+  {% endif %}
+</div>
 
-        <div class="section">
-          <div class="label">Comments</div>
-          <div>
-            {% if issue.comments %}
-              <ul>
-                {% for c in issue.comments %}
-                  <li><strong>{{ c.author.displayName }}</strong> ({{ c.created }})<div>{{ c.body }}</div></li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <div>No comments</div>
-            {% endif %}
-          </div>
-        </div>
+<!-- Two-column layout -->
+<div class="detail-layout">
 
-        <div class="section">
-          <div class="label">Attachments</div>
-          <div>
-            {% if issue.attachment %}
-              <ul>
-                {% for a in issue.attachment %}
-                  <li>{{ a.filename }} ({{ a.size }})</li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <div>No attachments</div>
-            {% endif %}
-          </div>
-        </div>
-      </div>
+  <!-- ── Left: Main Content ── -->
+  <div class="detail-main">
 
-      <div class="right">
-        <div class="section">
-          <div class="label">Project</div>
-          <div>{{ issue.project.key }} - {{ issue.project.name }}</div>
-        </div>
-
-        <div class="section">
-          <div class="label">Assignee</div>
-          <div>
-            {% if issue.assignee %}
-              {{ issue.assignee.displayName }}
-            {% else %}
-              Unassigned
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="label">Reporter</div>
-          <div>{{ issue.reporter.displayName }}</div>
-        </div>
-
-        <div class="section">
-          <div class="label">Created</div>
-          <div>{{ issue.created }}</div>
-        </div>
-
-        <div class="section">
-          <div class="label">Updated</div>
-          <div>{{ issue.updated }}</div>
-        </div>
-
-        <div class="section">
-          <div class="label">Labels</div>
-          <div>
-            {% if issue.labels %}
-              {% for l in issue.labels %}<span class="chip">{{ l }}</span>{% endfor %}
-            {% else %}
-              <div>No labels</div>
-            {% endif %}
-          </div>
-        </div>
-
-        <div class="section">
-          <div class="label">Components</div>
-          <div>
-            {% if issue.components %}
-              {% for c in issue.components %}<div>{{ c.name }}</div>{% endfor %}
-            {% else %}
-              <div>No components</div>
-            {% endif %}
-          </div>
-        </div>
-
+    <!-- Description -->
+    <div class="detail-section">
+      <div class="detail-section-title">Description</div>
+      <div class="detail-section-body {% if not issue.description_text %}empty{% endif %}">
+        {% if issue.description_text %}
+          {% set desc = issue.description_text %}
+          {% if 'ACCEPTANCE CRITERIA' in desc %}
+            {% set parts = desc.split('ACCEPTANCE CRITERIA') %}
+            {{ parts[0] | trim }}
+          {% else %}
+            {{ desc }}
+          {% endif %}
+        {% else %}
+          No description provided.
+        {% endif %}
       </div>
     </div>
 
-    <p><a href="/ui">Back to list</a></p>
-  </body>
-</html>
+    <!-- Story: Acceptance Criteria (parsed from description) -->
+    {% if itype | lower == 'story' %}
+    {% if issue.description_text and 'ACCEPTANCE CRITERIA' in issue.description_text %}
+    <div class="detail-section">
+      <div class="detail-section-title" style="color:var(--type-story)">Acceptance Criteria</div>
+      <div>
+        {% set ac_block = issue.description_text.split('ACCEPTANCE CRITERIA')[1] %}
+        <ul class="ac-list">
+          {% for line in ac_block.split('\n') %}
+            {% set l = line.strip() %}
+            {% if l and not l.startswith('[') %}
+              <li>{{ l }}</li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    <!-- Bug: Environment -->
+    {% if itype | lower == 'bug' and issue.environment_text %}
+    <div class="detail-section">
+      <div class="detail-section-title" style="color:var(--type-bug)">Environment</div>
+      <div class="detail-section-body">{{ issue.environment_text }}</div>
+    </div>
+    {% endif %}
+
+    <!-- Comments placeholder -->
+    <div class="detail-section">
+      <div class="detail-section-title">Activity</div>
+      <div style="color:var(--jira-muted);font-size:13px;padding:12px 0;">
+        No comments yet.
+      </div>
+    </div>
+
+  </div><!-- /detail-main -->
+
+  <!-- ── Right: Sidebar ── -->
+  <div class="detail-sidebar">
+
+    <div class="sidebar-card">
+
+      <!-- Status -->
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Status</div>
+        <div class="sidebar-field-value">
+          <span class="status-badge {{ status_class(istatus) }}">{{ istatus }}</span>
+        </div>
+      </div>
+
+      <!-- Assignee -->
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Assignee</div>
+        <div class="sidebar-field-value {% if not issue.assignee %}empty{% endif %}">
+          {% if issue.assignee %}
+            {% set aname = issue.assignee.displayName if issue.assignee is mapping else issue.assignee %}
+            <span style="display:flex;align-items:center;gap:8px">
+              <span class="assignee-chip" title="{{ aname }}">{{ aname[:2] | upper }}</span>
+              {{ aname }}
+            </span>
+          {% else %}
+            Unassigned
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Reporter -->
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Reporter</div>
+        <div class="sidebar-field-value">
+          {% if issue.reporter is mapping %}
+            {{ issue.reporter.displayName }}
+          {% else %}
+            {{ issue.reporter or 'Mock Reporter' }}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Priority -->
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Priority</div>
+        <div class="sidebar-field-value" style="display:flex;align-items:center;gap:6px">
+          {% set p = (issue.priority.name if issue.priority is mapping else issue.priority) | lower %}
+          {% if p == 'highest' %}
+            <span class="priority-icon p-highest"></span> Highest
+          {% elif p == 'high' %}
+            <span class="priority-icon p-high"></span> High
+          {% elif p == 'low' %}
+            <span class="priority-icon p-low"></span> Low
+          {% elif p == 'lowest' %}
+            <span class="priority-icon p-lowest"></span> Lowest
+          {% elif p == 'critical' %}
+            <span class="priority-icon p-critical"></span> Critical
+          {% else %}
+            <span class="priority-icon p-medium"></span> Medium
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Labels -->
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Labels</div>
+        <div class="sidebar-field-value {% if not issue.labels %}empty{% endif %}">
+          {% if issue.labels %}
+            {% for lbl in issue.labels %}<span class="label-chip">{{ lbl }}</span>{% endfor %}
+          {% else %}
+            None
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Components -->
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Components</div>
+        <div class="sidebar-field-value {% if not issue.components %}empty{% endif %}">
+          {% if issue.components %}
+            {% for comp in issue.components %}
+              <span class="label-chip">{{ comp.name if comp is mapping else comp }}</span>
+            {% endfor %}
+          {% else %}
+            None
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Story-specific -->
+      {% if itype | lower == 'story' %}
+      <div class="sidebar-field">
+        <div class="sidebar-field-label" style="color:var(--type-story)">Story Points</div>
+        <div class="sidebar-field-value {% if issue.story_points is none %}empty{% endif %}">
+          {% if issue.story_points is not none %}
+            <span class="story-points-badge">{{ issue.story_points }}</span>
+          {% else %}
+            Not estimated
+          {% endif %}
+        </div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label" style="color:var(--type-story)">Sprint</div>
+        <div class="sidebar-field-value {% if not issue.sprint_text %}empty{% endif %}">
+          {{ issue.sprint_text or 'Not assigned' }}
+        </div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label" style="color:var(--type-story)">Epic Link</div>
+        <div class="sidebar-field-value {% if not issue.epic_link %}empty{% endif %}">
+          {% if issue.epic_link %}
+            <a href="/ui/issue/{{ issue.epic_link }}">{{ issue.epic_link }}</a>
+          {% else %}
+            None
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Bug-specific -->
+      {% if itype | lower == 'bug' %}
+      <div class="sidebar-field">
+        <div class="sidebar-field-label" style="color:var(--type-bug)">Fix Version/s</div>
+        <div class="sidebar-field-value {% if not issue.fixVersions %}empty{% endif %}">
+          {% if issue.fixVersions %}
+            {% for v in issue.fixVersions %}<span class="label-chip">{{ v.name if v is mapping else v }}</span>{% endfor %}
+          {% else %}
+            None
+          {% endif %}
+        </div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label" style="color:var(--type-bug)">Due Date</div>
+        <div class="sidebar-field-value {% if not issue.due_date_val %}empty{% endif %}">
+          {{ issue.due_date_val or 'Not set' }}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Timestamps -->
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Created</div>
+        <div class="timestamp">{{ issue.created }}</div>
+      </div>
+      <div class="sidebar-field">
+        <div class="sidebar-field-label">Updated</div>
+        <div class="timestamp">{{ issue.updated }}</div>
+      </div>
+
+    </div><!-- /sidebar-card -->
+
+  </div><!-- /detail-sidebar -->
+
+</div><!-- /detail-layout -->
+
+
+<!-- ══════════════ Edit Modal ══════════════ -->
+<div class="modal-overlay" id="editModal" onclick="closeEditModal(event)">
+  <div class="modal" style="width:640px;max-width:95vw" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Edit {{ issue.key }}</h2>
+      <button class="modal-close" onclick="closeEditModal()">&times;</button>
+    </div>
+    <form method="post" action="/ui/issue/{{ issue.key }}/edit">
+      <div class="modal-body">
+        <div class="form-row">
+          <label class="form-label">Summary <span class="required">*</span></label>
+          <input name="summary" class="form-input" value="{{ issue.summary }}" required />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-textarea" rows="6">{{ issue.description_text }}</textarea>
+        </div>
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label class="form-label">Priority</label>
+            <select name="priority" class="form-select">
+              {% for p in ['Highest','High','Medium','Low','Lowest'] %}
+              <option {% if (issue.priority.name if issue.priority is mapping else issue.priority) == p %}selected{% endif %}>{{ p }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Status</label>
+            <select name="status" class="form-select">
+              {% for s in ['To Do','In Progress','Done'] %}
+              <option {% if (issue.status.name if issue.status is mapping else issue.status) == s %}selected{% endif %}>{{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Assignee</label>
+          <input name="assignee" class="form-input"
+            value="{% if issue.assignee %}{% if issue.assignee is mapping %}{{ issue.assignee.displayName }}{% else %}{{ issue.assignee }}{% endif %}{% endif %}" />
+        </div>
+        <div class="form-row">
+          <label class="form-label">Labels <span style="color:var(--jira-muted);font-weight:400">(comma-separated)</span></label>
+          <input name="labels" class="form-input"
+            value="{{ issue.labels | join(', ') if issue.labels else '' }}" />
+        </div>
+
+        <!-- Story-specific edit fields -->
+        {% if itype | lower == 'story' %}
+        <div style="border-top:1px solid var(--jira-border);padding-top:12px;margin-top:4px">
+          <div style="font-size:11px;font-weight:700;color:var(--type-story);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Story Fields</div>
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Story Points</label>
+              <input name="story_points" type="number" min="0" class="form-input"
+                value="{{ issue.story_points if issue.story_points is not none else '' }}" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Sprint</label>
+              <input name="sprint" class="form-input" value="{{ issue.sprint_text }}" />
+            </div>
+          </div>
+          <div class="form-row">
+            <label class="form-label">Epic Link</label>
+            <input name="epic_link" class="form-input" value="{{ issue.epic_link or '' }}" />
+          </div>
+        </div>
+        {% else %}
+        <input type="hidden" name="story_points" value="">
+        <input type="hidden" name="sprint" value="">
+        <input type="hidden" name="epic_link" value="">
+        {% endif %}
+
+        <!-- Bug-specific edit fields -->
+        {% if itype | lower == 'bug' %}
+        <div style="border-top:1px solid var(--jira-border);padding-top:12px;margin-top:4px">
+          <div style="font-size:11px;font-weight:700;color:var(--type-bug);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">Bug Fields</div>
+          <div class="form-row">
+            <label class="form-label">Environment</label>
+            <input name="environment" class="form-input" value="{{ issue.environment_text }}" />
+          </div>
+          <div class="form-grid-2">
+            <div class="form-row">
+              <label class="form-label">Fix Version/s <span style="color:var(--jira-muted);font-weight:400">(comma-separated)</span></label>
+              <input name="fix_versions" class="form-input"
+                value="{% if issue.fixVersions %}{{ issue.fixVersions | map(attribute='name') | join(', ') if issue.fixVersions[0] is mapping else issue.fixVersions | join(', ') }}{% endif %}" />
+            </div>
+            <div class="form-row">
+              <label class="form-label">Due Date</label>
+              <input name="due_date" type="date" class="form-input" value="{{ issue.due_date_val }}" />
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <input type="hidden" name="environment" value="">
+        <input type="hidden" name="fix_versions" value="">
+        <input type="hidden" name="due_date" value="">
+        {% endif %}
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ══════════════ Delete Confirm Modal ══════════════ -->
+<div class="modal-overlay" id="deleteModal" onclick="closeDeleteModal(event)">
+  <div class="modal" style="width:420px" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 class="modal-title">Delete Issue</h2>
+      <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p>Are you sure you want to delete <strong>{{ issue.key }}</strong>?</p>
+      <p class="delete-warning">This action cannot be undone. All data for this issue will be permanently removed.</p>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+      <form method="post" action="/ui/issue/{{ issue.key }}/delete" style="display:inline">
+        <button type="submit" class="btn btn-danger">Delete Issue</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openEditModal()   { document.getElementById('editModal').classList.add('open'); }
+function closeEditModal(e) { if (!e || e.target === document.getElementById('editModal')) document.getElementById('editModal').classList.remove('open'); }
+function openDeleteModal()   { document.getElementById('deleteModal').classList.add('open'); }
+function closeDeleteModal(e) { if (!e || e.target === document.getElementById('deleteModal')) document.getElementById('deleteModal').classList.remove('open'); }
+</script>
+{% endblock %}

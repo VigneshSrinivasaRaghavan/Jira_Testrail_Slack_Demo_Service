@@ -1,267 +1,336 @@
 # Jira Mock Service
 
-A FastAPI-based mock service that simulates Atlassian Jira Cloud REST API v3 for testing and development purposes.
+A FastAPI-based mock of Atlassian Jira Cloud REST API v3 for AI agent training and integration testing.
 
-## Features
-
-- 🎯 **Issue Management**: Create, read, update, and delete issues
-- 📎 **File Attachments**: Upload and manage file attachments
-- 🌐 **Web UI**: Simple interface for issue management
-- 🔐 **Authentication**: Bearer token validation (configurable)
-- 📊 **API Documentation**: Built-in Swagger/OpenAPI docs
-- 🐳 **Docker Ready**: Containerized with health checks
+---
 
 ## Quick Start
 
-### Using Docker Compose (Recommended)
-
-```bash
-# From project root
-docker compose up -d jira-mock
-
-# View logs
-docker compose logs -f jira-mock
-```
-
-### Local Development
+### Local (Recommended for development)
 
 ```bash
 cd mock-services/jira-mock
-
-# Option 1: Use startup script
-./start.sh
-
-# Option 2: Manual setup
-python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
-python -m uvicorn app:app --host 0.0.0.0 --port 4001 --reload
+uvicorn app:app --host 0.0.0.0 --port 4001 --reload
 ```
 
-### Windows Users
+Or use the startup script from the project root:
+
+```bash
+./start-all.sh
+```
+
+### Docker
+
+```bash
+docker compose up -d jira-mock
+docker compose logs -f jira-mock
+```
+
+### Windows
 
 ```cmd
 cd mock-services\jira-mock
-
-# Use batch script
 start.bat
-
-# Or PowerShell
+# or
 .\start-jira.ps1
 ```
 
+Service runs at: **http://localhost:4001**
+
+---
+
+## Authentication
+
+All REST API endpoints require a fixed Bearer token:
+
+```
+Authorization: Bearer mock-jira-token-2025
+```
+
+- Any other token → `401 Unauthorized`
+- UI routes (`/ui/*`) do not require auth
+- The token is shown prominently in the API docs at `/docs`
+- Configurable via env var `JIRA_API_TOKEN`
+
+---
+
 ## API Endpoints
 
-### Core Jira APIs
+### Issues
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/rest/api/3/issue` | Create new issue |
-| `GET` | `/rest/api/3/issue/{issueIdOrKey}` | Get issue details |
-| `PUT` | `/rest/api/3/issue/{issueIdOrKey}` | Update issue |
-| `DELETE` | `/rest/api/3/issue/{issueIdOrKey}` | Delete issue |
-| `GET` | `/rest/api/3/search` | Search issues with JQL |
-| `POST` | `/rest/api/3/issue/{issueIdOrKey}/attachments` | Upload attachments |
+| `POST` | `/rest/api/3/issue` | Create issue (Story or Bug) |
+| `GET` | `/rest/api/3/issue/{key}` | Read issue |
+| `PUT` | `/rest/api/3/issue/{key}` | Edit issue (real Jira method) — returns 204 |
+| `PATCH` | `/rest/api/3/issue/{key}` | Edit issue (partial) — returns 204 |
+| `DELETE` | `/rest/api/3/issue/{key}` | Delete issue — returns 204 |
+| `GET` | `/rest/api/3/issue/{key}/transitions` | List available status transitions |
+| `POST` | `/rest/api/3/issue/{key}/transitions` | Transition status |
+| `GET` | `/rest/api/3/search` | Search / list issues (supports JQL) |
 
-### Web Interface
+### System & Admin
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/ui` | Issue list and quick-create form |
+| `GET` | `/health` | Health check — no auth required |
+| `GET` | `/docs` | Swagger UI — interactive API docs |
+| `POST` | `/admin/reset` | Wipe DB and restore seed data |
+
+### Web UI
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/ui` | Backlog / issue list |
 | `GET` | `/ui/issue/{key}` | Issue detail view |
-| `POST` | `/ui/create` | Create issue via web form |
+| `POST` | `/ui/create` | Create issue via form |
+| `POST` | `/ui/issue/{key}/edit` | Edit issue via form |
+| `POST` | `/ui/issue/{key}/transition` | Status transition via form |
+| `POST` | `/ui/issue/{key}/delete` | Delete issue via form |
 
-### System
+---
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Health check |
-| `GET` | `/docs` | Swagger API documentation |
-| `POST` | `/admin/reset` | Reset database with seed data |
+## Story Fields
 
-## Usage Examples
+| API Field | Description |
+|-----------|-------------|
+| `customfield_10016` | Story Points (integer) |
+| `customfield_10020` | Sprint (string or sprint object) |
+| `customfield_10014` | Epic Link (parent issue key) |
 
-### Create Issue
+## Bug Fields
+
+| API Field | Description |
+|-----------|-------------|
+| `environment` | Environment where bug occurs (plain text or ADF doc) |
+| `fixVersions` | Array of `{"name": "..."}` version objects |
+| `duedate` | ISO date string `YYYY-MM-DD` |
+
+---
+
+## Create Issue – Examples
+
+### Story
 
 ```bash
-curl -X POST "http://localhost:4001/rest/api/3/issue" \
-  -H "Authorization: Bearer your-token" \
+curl -X POST http://localhost:4001/rest/api/3/issue \
+  -H "Authorization: Bearer mock-jira-token-2025" \
   -H "Content-Type: application/json" \
   -d '{
     "fields": {
-      "summary": "Test issue from API",
-      "description": "This is a test issue created via API",
-      "issuetype": {"name": "Bug"},
-      "priority": {"name": "High"}
+      "project": {"key": "QA"},
+      "summary": "User can log in with valid credentials",
+      "description": "As a user I want to log in.\n\nACCEPTANCE CRITERIA\nAC1 - Valid login redirects to dashboard.",
+      "issuetype": {"name": "Story"},
+      "priority": {"name": "High"},
+      "assignee": "jane.smith",
+      "customfield_10016": 5,
+      "customfield_10020": "Sprint 1"
     }
   }'
 ```
 
-### Get Issue
+### Bug
 
 ```bash
-curl -X GET "http://localhost:4001/rest/api/3/issue/QA-1" \
-  -H "Authorization: Bearer your-token"
+curl -X POST http://localhost:4001/rest/api/3/issue \
+  -H "Authorization: Bearer mock-jira-token-2025" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fields": {
+      "project": {"key": "QA"},
+      "summary": "Login button unresponsive in Safari",
+      "description": "First tap on Login does nothing in Safari 17.",
+      "issuetype": {"name": "Bug"},
+      "priority": {"name": "Critical"},
+      "environment": "Production – Safari 17, iOS 17.4",
+      "fixVersions": [{"name": "v1.3.1"}],
+      "duedate": "2025-10-31"
+    }
+  }'
 ```
 
-### Search Issues
+### Read Issue
 
 ```bash
-curl -X GET "http://localhost:4001/rest/api/3/search?jql=project=QA&startAt=0&maxResults=50" \
-  -H "Authorization: Bearer your-token"
+curl http://localhost:4001/rest/api/3/issue/QA-1 \
+  -H "Authorization: Bearer mock-jira-token-2025"
 ```
 
-### Upload Attachment
+### Edit Issue (PUT)
 
 ```bash
-curl -X POST "http://localhost:4001/rest/api/3/issue/QA-1/attachments" \
-  -H "Authorization: Bearer your-token" \
-  -F "file=@/path/to/your/file.txt"
+curl -X PUT http://localhost:4001/rest/api/3/issue/QA-1 \
+  -H "Authorization: Bearer mock-jira-token-2025" \
+  -H "Content-Type: application/json" \
+  -d '{"fields": {"priority": {"name": "Critical"}, "customfield_10016": 8}}'
 ```
+
+### Transition Status
+
+```bash
+# Get available transitions
+curl http://localhost:4001/rest/api/3/issue/QA-1/transitions \
+  -H "Authorization: Bearer mock-jira-token-2025"
+
+# Move to In Progress (id=2) / Done (id=3) / To Do (id=1)
+curl -X POST http://localhost:4001/rest/api/3/issue/QA-1/transitions \
+  -H "Authorization: Bearer mock-jira-token-2025" \
+  -H "Content-Type: application/json" \
+  -d '{"transition": {"id": "2"}}'
+```
+
+### Search with JQL
+
+```bash
+# All issues
+curl "http://localhost:4001/rest/api/3/search" \
+  -H "Authorization: Bearer mock-jira-token-2025"
+
+# Stories only
+curl "http://localhost:4001/rest/api/3/search?jql=issuetype=Story" \
+  -H "Authorization: Bearer mock-jira-token-2025"
+
+# Bugs in progress
+curl "http://localhost:4001/rest/api/3/search?jql=issuetype=Bug" \
+  -H "Authorization: Bearer mock-jira-token-2025"
+```
+
+---
+
+## Description Format (ADF)
+
+Real Jira Cloud uses **Atlassian Document Format (ADF)** for `description` and `environment`.
+
+The mock accepts both plain strings and ADF objects as input. Responses always return ADF format:
+
+```json
+{
+  "type": "doc",
+  "version": 1,
+  "content": [
+    {
+      "type": "paragraph",
+      "content": [{"type": "text", "text": "Your description text here"}]
+    }
+  ]
+}
+```
+
+---
+
+## Status Transitions
+
+| Transition ID | Target Status | From |
+|---------------|---------------|------|
+| `1` | To Do | In Progress, Done |
+| `2` | In Progress | To Do, Done |
+| `3` | Done | In Progress |
+
+---
+
+## JQL Search Support
+
+| JQL Expression | Example |
+|----------------|---------|
+| `issuetype = Story` | `?jql=issuetype=Story` |
+| `issuetype = Bug` | `?jql=issuetype=Bug` |
+| `status = "In Progress"` | `?jql=status="In Progress"` |
+| `status = Done` | `?jql=status=Done` |
+
+---
+
+## Seed Data
+
+On first start (or after `POST /admin/reset`), the DB loads 7 sample issues:
+
+| Key | Type | Summary | Status |
+|-----|------|---------|--------|
+| QA-1 | Story | Login Page Workflow for OrangeHRM | To Do |
+| QA-2 | Story | Logout Workflow for OrangeHRM | In Progress |
+| QA-3 | Story | Dashboard Navigation | To Do |
+| QA-4 | Bug | Login fails with valid credentials on first attempt | To Do |
+| QA-5 | Bug | Forgot Password link does not send reset email | In Progress |
+| QA-6 | Bug | Search Employee returns no results for partial matches | Done |
+| QA-7 | Story | Add New Employee – Full workflow validation | Done |
+
+---
 
 ## Configuration
 
-Environment variables:
+| Env Var | Default | Description |
+|---------|---------|-------------|
+| `JIRA_API_TOKEN` | `mock-jira-token-2025` | The only accepted Bearer token |
+| `JIRA_PROJECT_KEY` | `QA` | Project key prefix for issue keys |
+| `JIRA_PROJECT_NAME` | `QA Project` | Project display name |
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `4001` | Server port |
-| `HOST` | `0.0.0.0` | Server host |
-| `MOCK_AUTH_REQUIRED` | `true` | Enable/disable auth |
-| `JIRA_PROJECT_KEY` | `QA` | Default project key |
-| `DATABASE_URL` | `sqlite:///./jira.db` | Database connection |
-
-## Default Data
-
-The service comes with pre-seeded sample issues:
-
-- **QA-1**: Sample Bug - "Login page not loading"
-- **QA-2**: Sample Task - "Update user documentation"
-- **QA-3**: Sample Story - "Implement dark mode"
-
-## API Mapping to Real Jira
-
-| Mock Endpoint | Real Jira Endpoint | Notes |
-|---------------|-------------------|-------|
-| `POST /rest/api/3/issue` | `POST https://your-domain.atlassian.net/rest/api/3/issue` | Simplified field validation |
-| `GET /rest/api/3/issue/{key}` | `GET https://your-domain.atlassian.net/rest/api/3/issue/{key}` | Core fields supported |
-| `GET /rest/api/3/search` | `GET https://your-domain.atlassian.net/rest/api/3/search` | Basic JQL support |
-| `POST /rest/api/3/issue/{key}/attachments` | `POST https://your-domain.atlassian.net/rest/api/3/issue/{key}/attachments` | File upload simulation |
-
-## Testing
-
-Run the test suite:
-
-```bash
-# Install test dependencies
-pip install pytest pytest-asyncio
-
-# Run tests
-pytest tests/ -v
-```
+---
 
 ## Postman Collection
 
-Import the provided Postman collection for interactive testing:
+Located in the project root `postman-collections/` folder:
 
-- **Collection**: `Jira_Mock_API.postman_collection.json`
-- **Environment**: `Jira_Mock_Environment.postman_environment.json`
-
-## Web Interface
-
-Visit the web interface at:
-
-- **Issue List**: http://localhost:4001/ui
-- **Specific Issue**: http://localhost:4001/ui/issue/QA-1
-
-The web interface allows you to:
-- View all issues in a table format
-- Create new issues via a simple form
-- View detailed issue information
-- See API usage examples
-
-## Database Management
-
-### Reset Database
-
-```bash
-# Option 1: API reset (requires auth)
-curl -X POST -H "Authorization: Bearer token" http://localhost:4001/admin/reset
-
-# Option 2: Delete database file (service restart required)
-rm jira.db
-
-# Option 3: Docker volume reset
-docker compose down
-docker volume rm jira_db
-docker compose up -d jira-mock
+```
+postman-collections/
+├── Jira_Mock_v2.postman_collection.json      ← 25 requests, 6 folders
+└── Jira_Mock_v2.postman_environment.json     ← Pre-configured with token
 ```
 
-### Inspect Database
+See `POSTMAN_COLLECTION_README.md` for import and usage instructions.
 
-```bash
-# View tables
-sqlite3 jira.db ".tables"
+---
 
-# View issues
-sqlite3 jira.db "SELECT * FROM issues;"
-```
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Port Already in Use**: Change the `PORT` environment variable
-2. **Database Locked**: Stop all instances and delete `jira.db`
-3. **Auth Errors**: Set `MOCK_AUTH_REQUIRED=false` to disable auth
-
-### Logs
-
-View service logs:
-
-```bash
-# Docker Compose
-docker compose logs jira-mock
-
-# Local development
-# Logs are printed to stdout
-```
-
-### Health Check
-
-```bash
-# Quick health check
-curl http://localhost:4001/health
-
-# Or use the provided script
-./check_jira.sh
-```
-
-## Development
-
-### Project Structure
+## Project Structure
 
 ```
 jira-mock/
-├── app.py              # FastAPI application
-├── templates/          # Jinja2 templates
-│   ├── index.html      # Issue list view
-│   └── issue_detail.html # Issue detail view
-├── static/             # Static assets
-├── Dockerfile          # Container definition
-├── requirements.txt    # Python dependencies
-├── start.sh           # Startup script (Unix)
-├── start.bat          # Startup script (Windows)
-└── README.md          # This file
+├── app.py                        # FastAPI app — all routes, DB schema, auth
+├── templates/
+│   ├── base.html                 # Shared layout (nav, sidebar, create modal)
+│   ├── index.html                # Backlog / issue list view
+│   └── issue_detail.html         # Issue detail with edit/transition/delete
+├── static/
+│   ├── style.css                 # Jira-like design system
+│   └── main.js                   # Modal, type toggling, keyboard shortcuts
+├── seed/
+│   └── sample_issues.json        # 7 seed issues (Stories + Bugs)
+├── Dockerfile
+├── requirements.txt
+├── start.sh / start.bat
+├── README.md                     # This file
+└── POSTMAN_COLLECTION_README.md  # Postman import guide
 ```
 
-### Adding New Features
+---
 
-1. **New API Endpoint**: Add route to `app.py`
-2. **Database Changes**: Update SQLAlchemy models
-3. **UI Changes**: Modify templates in `templates/`
-4. **Tests**: Add tests following existing patterns
+## Database Management
 
-## License
+```bash
+# Reset via API
+curl -X POST http://localhost:4001/admin/reset \
+  -H "Authorization: Bearer mock-jira-token-2025"
 
-This is a mock service for development and testing purposes only.
+# Inspect SQLite directly
+sqlite3 mock-services/jira-mock/jira.db "SELECT key, issue_type, status, summary FROM issues;"
+
+# Delete DB file (service will recreate + reseed on next start)
+rm mock-services/jira-mock/jira.db
+```
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| `401 Unauthorized` | Use `Authorization: Bearer mock-jira-token-2025` exactly |
+| `404 Not Found` | Check the issue key exists — run `GET /rest/api/3/search` to list all |
+| Port 4001 in use | `kill $(lsof -ti :4001)` then restart |
+| DB schema errors | Delete `jira.db` — it recreates on startup |
+| Template errors | Check `logs/jira-mock.log` for the Jinja2 traceback |
+
+```bash
+# View live logs
+tail -f logs/jira-mock.log
+```
