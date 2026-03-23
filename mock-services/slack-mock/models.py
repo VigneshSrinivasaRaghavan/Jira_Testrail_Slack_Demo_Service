@@ -8,6 +8,35 @@ from sqlalchemy.orm import relationship
 Base = declarative_base()
 
 
+class User(Base):
+    """Slack user model."""
+
+    __tablename__ = "users"
+
+    id = Column(String, primary_key=True)           # e.g. "U1234567890"
+    name = Column(String(80), unique=True, nullable=False)
+    real_name = Column(String(255), default="")
+    display_name = Column(String(255), default="")
+    email = Column(String(255), default="")
+    is_bot = Column(Boolean, default=False)
+    avatar_color = Column(String(7), default="#4a154b")  # hex for avatar circle
+    created_on = Column(DateTime, default=datetime.utcnow)
+
+
+class Reaction(Base):
+    """Emoji reaction on a message."""
+
+    __tablename__ = "reactions"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    message_ts = Column(String, ForeignKey("messages.ts"), nullable=False)
+    name = Column(String(50), nullable=False)        # emoji name without colons
+    user_id = Column(String, nullable=False)
+    created_on = Column(DateTime, default=datetime.utcnow)
+
+    message = relationship("Message", back_populates="reactions")
+
+
 class Channel(Base):
     """Slack channel model."""
     
@@ -23,6 +52,20 @@ class Channel(Base):
     
     # Relationships
     messages = relationship("Message", back_populates="channel", cascade="all, delete-orphan")
+    members = relationship("ChannelMember", back_populates="channel", cascade="all, delete-orphan")
+
+
+class ChannelMember(Base):
+    """Membership mapping between users and channels."""
+
+    __tablename__ = "channel_members"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    channel_id = Column(String, ForeignKey("channels.id"), nullable=False)
+    user_id = Column(String, nullable=False)
+    joined_on = Column(DateTime, default=datetime.utcnow)
+
+    channel = relationship("Channel", back_populates="members")
 
 
 class Message(Base):
@@ -41,6 +84,7 @@ class Message(Base):
     # Relationships
     channel = relationship("Channel", back_populates="messages")
     files = relationship("File", back_populates="message", cascade="all, delete-orphan")
+    reactions = relationship("Reaction", back_populates="message", cascade="all, delete-orphan")
 
 
 class File(Base):

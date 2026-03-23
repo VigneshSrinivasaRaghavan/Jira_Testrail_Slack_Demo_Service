@@ -27,11 +27,12 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.openapi.utils import get_openapi
 import time
 
 from storage import init_db
-from routes import api_router, ui_router
+from routes import api_router, ui_router, SlackAuthError
 
 # Configure logging
 logging.basicConfig(
@@ -60,14 +61,73 @@ async def lifespan(application: FastAPI):
         logger.info("Shutting down Slack Mock Service...")
 
 
+API_DESCRIPTION = """
+## 🔐 Authentication — Required for every API call
+
+All API endpoints require a **Bearer token** in the `Authorization` header.
+
+### ✅ Use this token for all requests:
+
+```
+Authorization: Bearer xoxb-mock-bot-token
+```
+
+### How to authenticate in this Swagger UI:
+1. Click the **🔒 Authorize** button at the top-right of this page
+2. In the **BearerAuth** field, enter: `xoxb-mock-bot-token`
+3. Click **Authorize**, then **Close**
+4. All requests you send from this page will now include the correct header automatically
+
+---
+
+### Token format rules (same as real Slack)
+| Token prefix | Type | Example |
+|---|---|---|
+| `xoxb-` | Bot token | `xoxb-mock-bot-token` |
+| `xoxp-` | User token | `xoxp-mock-user-token` |
+| `demo-token` | Dev shortcut | `demo-token` |
+| `test-token` | Dev shortcut | `test-token` |
+
+> Any string starting with `xoxb-` or `xoxp-` is accepted — the value after the prefix does not matter in this mock.
+
+---
+
+## 📡 Key Endpoints
+
+| Method | Endpoint | What it does |
+|---|---|---|
+| `POST` | `/api/chat.postMessage` | **Send a message to a channel** |
+| `GET` | `/api/conversations.list` | List all channels |
+| `GET` | `/api/conversations.history` | Get messages in a channel |
+| `GET` | `/api/auth.test` | Validate your token |
+| `GET` | `/api/users.list` | List all users |
+| `POST` | `/api/conversations.create` | Create a new channel |
+| `POST` | `/api/chat.update` | Edit a message |
+| `POST` | `/api/chat.delete` | Delete a message |
+| `POST` | `/api/reactions.add` | Add an emoji reaction |
+
+---
+
+## 🚀 Quick Example — Send a message
+
+```bash
+curl -X POST http://localhost:4003/api/chat.postMessage \\
+  -H "Authorization: Bearer xoxb-mock-bot-token" \\
+  -H "Content-Type: application/json" \\
+  -d '{"channel": "qa-reports", "text": "Hello from the API!"}'
+```
+
+Every response follows Slack's format: `{"ok": true, ...}` on success or `{"ok": false, "error": "..."}` on failure.
+"""
+
 # Create FastAPI app
 app = FastAPI(
     title="Slack Mock API",
-    description=__doc__,
+    description=API_DESCRIPTION,
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS middleware
@@ -128,23 +188,64 @@ async def health():
 
 
 # Error handlers
+@app.exception_handler(SlackAuthError)
+async def slack_auth_error_handler(request: Request, exc: SlackAuthError):  # noqa: ARG001
+    """Return Slack-style auth error: {"ok": false, "error": "..."}."""
+    return JSONResponse(status_code=200, content={"ok": False, "error": exc.error_code})
+
+
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc: HTTPException):  # noqa: ARG001
     """Handle 404 errors."""
-    return {"error": "Not found", "detail": exc.detail, "status_code": 404}
-
-
-@app.exception_handler(401)
-async def unauthorized_handler(request: Request, exc: HTTPException):  # noqa: ARG001
-    """Handle 401 errors."""
-    return {"error": "Unauthorized", "detail": exc.detail, "status_code": 401}
+    return JSONResponse(status_code=404, content={"error": "Not found", "detail": exc.detail})
 
 
 @app.exception_handler(500)
 async def internal_error_handler(request: Request, exc: Exception):  # noqa: ARG001
     """Handle 500 errors."""
     logger.error("Internal server error: %s", exc)
-    return {"error": "Internal server error", "detail": str(exc), "status_code": 500}
+    return JSONResponse(status_code=500, content={"error": "Internal server error", "detail": str(exc)})
+
+
+def custom_openapi():
+    """Inject BearerAuth security scheme and pre-fill the default token."""
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+
+    # Add BearerAuth security scheme
+    schema.setdefault("components", {})
+    schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "Slack bot token  (e.g. xoxb-mock-bot-token)",
+            "description": (
+                "Enter your Slack-style bearer token.\n\n"
+                "**Use this value:** `xoxb-mock-bot-token`\n\n"
+                "Any token starting with `xoxb-` or `xoxp-` is accepted."
+            ),
+        }
+    }
+
+    # Apply security globally to every operation
+    for path_item in schema.get("paths", {}).values():
+        for operation in path_item.values():
+            if isinstance(operation, dict) and "tags" in operation:
+                if "Slack API" in operation.get("tags", []):
+                    operation.setdefault("security", [{"BearerAuth": []}])
+
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
 
 
 if __name__ == "__main__":

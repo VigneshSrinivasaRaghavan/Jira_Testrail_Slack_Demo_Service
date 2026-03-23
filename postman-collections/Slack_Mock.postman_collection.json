@@ -1,0 +1,784 @@
+{
+  "info": {
+    "_postman_id": "slack-mock-collection-2026",
+    "name": "Slack Mock API – Training Collection",
+    "description": "# Slack Mock API – Student Training Collection\n\nUse this collection to practice interacting with the Slack Mock Service running locally on port **4003**.\n\n## 🔑 Authentication — Required for every request\n\nEvery API request must include this header:\n```\nAuthorization: Bearer xoxb-mock-bot-token\n```\nThis is already configured via the **Slack Mock – Local** environment. Just select it and you're ready.\n\n## 🚀 Quick Start\n1. Import this collection **and** `Slack_Mock.postman_environment.json`\n2. Select the **Slack Mock – Local** environment (top-right dropdown in Postman)\n3. Make sure the Slack Mock server is running on `http://localhost:4003`\n4. Run **Health Check** first to verify the server is up\n5. Run **Send Message** to post to `#qa-reports` — the `ts` is auto-saved to `{{message_ts}}`\n6. Use that variable in Update Message, Delete Message, Add Reaction, etc.\n\n## 📚 Folder Structure\n- **System** — health check, auth test\n- **Conversations** — list channels, get channel info, create channel, get history, get members, get thread replies\n- **Chat** — send message, update message, delete message\n- **Users** — list users, get user info\n- **Reactions** — add reaction, get reactions\n- **Files** — upload a file\n\n## 🌱 Seed Data\n| Resource | Values |\n|---|---|\n| Channels | `qa-reports` (C1234567890), `general` (C0987654321), `dev-alerts` (C1122334455) |\n| Users | `alice` (U1111111111), `bob` (U2222222222), `charlie` (U3333333333) |\n| Token | `xoxb-mock-bot-token` (any `xoxb-*` or `xoxp-*` value works) |",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [],
+  "item": [
+
+    {
+      "name": "System",
+      "description": "Health check and authentication verification",
+      "item": [
+
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verify the Slack Mock server is running. No auth required."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"status\": \"healthy\",\n  \"service\": \"slack-mock\",\n  \"version\": \"1.0.0\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Auth Test",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Auth test ok', () => pm.expect(pm.response.json().ok).to.be.true);",
+                  "pm.test('Returns team info', () => pm.expect(pm.response.json().team).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/auth.test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth.test"]
+            },
+            "description": "Validate your token and get workspace info. Equivalent to real Slack's `auth.test`.\n\n**Expected response:**\n```json\n{\"ok\": true, \"team\": \"Mock Workspace\", \"user\": \"mock_bot\", ...}\n```\n\n**If token is missing:** `{\"ok\": false, \"error\": \"not_authed\"}`\n**If token is wrong:** `{\"ok\": false, \"error\": \"invalid_auth\"}`"
+          },
+          "response": [
+            {
+              "name": "200 OK – valid token",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"url\": \"https://mockslack.slack.com/\",\n  \"team\": \"Mock Workspace\",\n  \"user\": \"mock_bot\",\n  \"team_id\": \"T0MOCKTEAM1\",\n  \"user_id\": \"USLACKBOT\",\n  \"bot_id\": \"B0MOCKBOT01\",\n  \"is_enterprise_install\": false\n}"
+            },
+            {
+              "name": "200 – invalid_auth",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": false,\n  \"error\": \"invalid_auth\"\n}"
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "Conversations",
+      "description": "Channel management — list, info, create, history, members, replies.\n\nAll requests use: `Authorization: Bearer {{api_token}}`",
+      "item": [
+
+        {
+          "name": "List Channels",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('channels is array', () => pm.expect(json.channels).to.be.an('array'));",
+                  "if (json.channels.length > 0) {",
+                  "    pm.environment.set('channel_id', json.channels[0].id);",
+                  "    console.log('First channel ID saved:', json.channels[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/conversations.list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "conversations.list"],
+              "query": [
+                {"key": "limit", "value": "100", "disabled": true},
+                {"key": "types", "value": "public_channel", "disabled": true}
+              ]
+            },
+            "description": "List all channels in the workspace. Equivalent to real Slack's `conversations.list`.\n\nThe first channel's ID is auto-saved to `{{channel_id}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"channels\": [\n    {\"id\": \"C1234567890\", \"name\": \"qa-reports\", \"is_channel\": true, \"is_private\": false},\n    {\"id\": \"C0987654321\", \"name\": \"general\", \"is_channel\": true, \"is_private\": false}\n  ],\n  \"response_metadata\": {\"next_cursor\": \"\"}\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Channel Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('channel name returned', () => pm.expect(json.channel.name).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/conversations.info?channel={{channel_name}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "conversations.info"],
+              "query": [
+                {"key": "channel", "value": "{{channel_name}}"}
+              ]
+            },
+            "description": "Get details about a specific channel. Pass either the channel name or channel ID.\n\nEquivalent to real Slack's `conversations.info`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"channel\": {\n    \"id\": \"C1234567890\",\n    \"name\": \"qa-reports\",\n    \"is_channel\": true,\n    \"is_private\": false,\n    \"topic\": {\"value\": \"Quality Assurance Reports and Updates\"},\n    \"purpose\": {\"value\": \"Channel for sharing QA test results\"}\n  }\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Create Channel",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "if (json.ok) {",
+                  "    pm.environment.set('channel_id', json.channel.id);",
+                  "    pm.environment.set('channel_name', json.channel.name);",
+                  "    console.log('Channel created:', json.channel.name, json.channel.id);",
+                  "    pm.test('Channel ID returned', () => pm.expect(json.channel.id).to.match(/^C/));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"new-test-channel\",\n  \"is_private\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/conversations.create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "conversations.create"]
+            },
+            "description": "Create a new public or private channel. Channel name must be lowercase with no spaces (use hyphens).\n\nEquivalent to real Slack's `conversations.create`.\n\nThe new channel ID is auto-saved to `{{channel_id}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK – created",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"channel\": {\n    \"id\": \"C1711234567ABC\",\n    \"name\": \"new-test-channel\",\n    \"is_channel\": true,\n    \"is_private\": false\n  }\n}"
+            },
+            {
+              "name": "200 – name_taken",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": false,\n  \"error\": \"name_taken\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Channel History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('messages is array', () => pm.expect(json.messages).to.be.an('array'));",
+                  "if (json.messages && json.messages.length > 0) {",
+                  "    pm.environment.set('message_ts', json.messages[json.messages.length - 1].ts);",
+                  "    console.log('Latest message ts saved:', json.messages[json.messages.length - 1].ts);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/conversations.history?channel={{channel_name}}&limit=50",
+              "host": ["{{base_url}}"],
+              "path": ["api", "conversations.history"],
+              "query": [
+                {"key": "channel", "value": "{{channel_name}}"},
+                {"key": "limit", "value": "50"},
+                {"key": "oldest", "value": "", "disabled": true, "description": "Only return messages after this timestamp"},
+                {"key": "latest", "value": "", "disabled": true, "description": "Only return messages before this timestamp"}
+              ]
+            },
+            "description": "Fetch the message history for a channel. Pass the channel name or ID.\n\nEquivalent to real Slack's `conversations.history`.\n\nThe latest message `ts` is auto-saved to `{{message_ts}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"messages\": [\n    {\n      \"type\": \"message\",\n      \"user\": \"U1111111111\",\n      \"text\": \"Test automation run completed!\",\n      \"ts\": \"1774291604.000100\"\n    }\n  ],\n  \"has_more\": false,\n  \"response_metadata\": {\"next_cursor\": \"\"}\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Channel Members",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('members is array', () => pm.expect(json.members).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/conversations.members?channel={{channel_name}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "conversations.members"],
+              "query": [
+                {"key": "channel", "value": "{{channel_name}}"}
+              ]
+            },
+            "description": "Retrieve the list of user IDs who are members of a channel.\n\nEquivalent to real Slack's `conversations.members`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"members\": [\"U1111111111\", \"U2222222222\"],\n  \"response_metadata\": {\"next_cursor\": \"\"}\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Thread Replies",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('messages returned', () => pm.expect(json.messages).to.be.an('array'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/conversations.replies?channel={{channel_name}}&ts={{message_ts}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "conversations.replies"],
+              "query": [
+                {"key": "channel", "value": "{{channel_name}}"},
+                {"key": "ts", "value": "{{message_ts}}"}
+              ]
+            },
+            "description": "Retrieve a thread of replies for a given message timestamp.\n\nEquivalent to real Slack's `conversations.replies`.\n\nRequires `{{message_ts}}` — run **Get Channel History** or **Send Message** first."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"messages\": [\n    {\"type\": \"message\", \"text\": \"Parent message\", \"ts\": \"1774291604.000100\"},\n    {\"type\": \"message\", \"text\": \"Reply 1\", \"ts\": \"1774291700.000200\", \"thread_ts\": \"1774291604.000100\"}\n  ],\n  \"has_more\": false\n}"
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "Chat",
+      "description": "Send, update and delete messages.\n\nAll requests use: `Authorization: Bearer {{api_token}}`",
+      "item": [
+
+        {
+          "name": "Send Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('ts returned', () => pm.expect(json.ts).to.be.a('string'));",
+                  "pm.test('channel returned', () => pm.expect(json.channel).to.be.a('string'));",
+                  "if (json.ok) {",
+                  "    pm.environment.set('message_ts', json.ts);",
+                  "    console.log('Message ts saved:', json.ts);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"{{channel_name}}\",\n  \"text\": \"This is test message from API\",\n  \"username\": \"MockBot\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat.postMessage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat.postMessage"]
+            },
+            "description": "Send a message to a channel. The channel can be a name (`qa-reports`) or an ID (`C1234567890`).\n\nEquivalent to real Slack's `chat.postMessage`.\n\n**The returned `ts` is auto-saved to `{{message_ts}}`** for use in Update, Delete, Reaction requests.\n\n**Required fields:**\n- `channel` — channel name or ID\n- `text` — message content\n\n**Optional fields:**\n- `username` — display name for the message author\n- `thread_ts` — reply to a thread\n- `attachments` — legacy attachments array\n- `blocks` — Block Kit blocks array"
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"channel\": \"C1234567890\",\n  \"ts\": \"1774296066.063248\",\n  \"message\": {\n    \"type\": \"message\",\n    \"bot_id\": \"B0MOCKBOT01\",\n    \"text\": \"This is test message from API\",\n    \"user\": \"MockBot\",\n    \"ts\": \"1774296066.063248\",\n    \"team\": \"T0MOCKTEAM1\",\n    \"thread_ts\": null,\n    \"attachments\": [],\n    \"blocks\": []\n  }\n}"
+            },
+            {
+              "name": "200 – channel_not_found",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": false,\n  \"error\": \"channel_not_found\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Update Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('ts returned', () => pm.expect(json.ts).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"{{channel_name}}\",\n  \"ts\": \"{{message_ts}}\",\n  \"text\": \"This message was updated via API\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat.update",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat.update"]
+            },
+            "description": "Edit the text of an existing message. Requires the message's `ts` timestamp.\n\nEquivalent to real Slack's `chat.update`.\n\nRun **Send Message** or **Get Channel History** first to populate `{{message_ts}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"channel\": \"C1234567890\",\n  \"ts\": \"1774296066.063248\",\n  \"text\": \"This message was updated via API\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Delete Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "if (json.ok) {",
+                  "    pm.environment.set('message_ts', '');",
+                  "    console.log('Message deleted, ts cleared');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"{{channel_name}}\",\n  \"ts\": \"{{message_ts}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat.delete",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat.delete"]
+            },
+            "description": "Delete a message from a channel. Requires the message's `ts` timestamp.\n\nEquivalent to real Slack's `chat.delete`.\n\nRun **Send Message** first to populate `{{message_ts}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"channel\": \"C1234567890\",\n  \"ts\": \"1774296066.063248\"\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Send Message – with thread_ts (Reply)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('thread_ts set', () => pm.expect(json.message.thread_ts).to.not.be.null);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"{{channel_name}}\",\n  \"text\": \"This is a threaded reply\",\n  \"thread_ts\": \"{{message_ts}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/chat.postMessage",
+              "host": ["{{base_url}}"],
+              "path": ["api", "chat.postMessage"]
+            },
+            "description": "Post a reply in a thread. Set `thread_ts` to the `ts` of the parent message.\n\nRun **Send Message** first to populate `{{message_ts}}`, then run this request."
+          },
+          "response": []
+        }
+
+      ]
+    },
+
+    {
+      "name": "Users",
+      "description": "List and look up workspace users.\n\nAll requests use: `Authorization: Bearer {{api_token}}`",
+      "item": [
+
+        {
+          "name": "List Users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('members returned', () => pm.expect(json.members).to.be.an('array'));",
+                  "if (json.members && json.members.length > 0) {",
+                  "    pm.environment.set('user_id', json.members[0].id);",
+                  "    console.log('First user ID saved:', json.members[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users.list",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users.list"]
+            },
+            "description": "List all users in the workspace. Equivalent to real Slack's `users.list`.\n\nSeed users: `alice` (U1111111111), `bob` (U2222222222), `charlie` (U3333333333).\n\nThe first user's ID is auto-saved to `{{user_id}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"members\": [\n    {\n      \"id\": \"U1111111111\",\n      \"name\": \"alice\",\n      \"is_bot\": false,\n      \"profile\": {\n        \"real_name\": \"Alice Johnson\",\n        \"display_name\": \"Alice\",\n        \"email\": \"alice@example.com\"\n      }\n    }\n  ]\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get User Info",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('user id returned', () => pm.expect(json.user.id).to.be.a('string'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/users.info?user={{user_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users.info"],
+              "query": [
+                {"key": "user", "value": "{{user_id}}"}
+              ]
+            },
+            "description": "Get information about a specific user by their user ID.\n\nEquivalent to real Slack's `users.info`.\n\nSeed user IDs: `U1111111111`, `U2222222222`, `U3333333333`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"user\": {\n    \"id\": \"U1111111111\",\n    \"name\": \"alice\",\n    \"deleted\": false,\n    \"is_bot\": false,\n    \"profile\": {\n      \"real_name\": \"Alice Johnson\",\n      \"display_name\": \"Alice\",\n      \"email\": \"alice@example.com\"\n    }\n  }\n}"
+            },
+            {
+              "name": "200 – user_not_found",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": false,\n  \"error\": \"user_not_found\"\n}"
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "Reactions",
+      "description": "Add emoji reactions to messages and retrieve them.\n\nAll requests use: `Authorization: Bearer {{api_token}}`",
+      "item": [
+
+        {
+          "name": "Add Reaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel\": \"{{channel_name}}\",\n  \"timestamp\": \"{{message_ts}}\",\n  \"name\": \"thumbsup\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reactions.add",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reactions.add"]
+            },
+            "description": "Add an emoji reaction to a message. The `name` field is the emoji name **without colons** (e.g. `thumbsup`, not `:thumbsup:`).\n\nEquivalent to real Slack's `reactions.add`.\n\nRun **Send Message** first to populate `{{message_ts}}`."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true\n}"
+            }
+          ]
+        },
+
+        {
+          "name": "Get Reactions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('message returned', () => pm.expect(json.message).to.be.an('object'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/reactions.get?channel={{channel_name}}&timestamp={{message_ts}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "reactions.get"],
+              "query": [
+                {"key": "channel", "value": "{{channel_name}}"},
+                {"key": "timestamp", "value": "{{message_ts}}"}
+              ]
+            },
+            "description": "Get all reactions for a specific message.\n\nEquivalent to real Slack's `reactions.get`.\n\nRun **Add Reaction** first to see results."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"type\": \"message\",\n  \"channel\": \"C1234567890\",\n  \"message\": {\n    \"text\": \"This is test message from API\",\n    \"ts\": \"1774296066.063248\",\n    \"reactions\": [\n      {\"name\": \"thumbsup\", \"count\": 1, \"users\": [\"USLACKBOT\"]}\n    ]\n  }\n}"
+            }
+          ]
+        }
+
+      ]
+    },
+
+    {
+      "name": "Files",
+      "description": "Upload files to channels.\n\nAll requests use: `Authorization: Bearer {{api_token}}`",
+      "item": [
+
+        {
+          "name": "Upload File",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "var json = pm.response.json();",
+                  "pm.test('ok is true', () => pm.expect(json.ok).to.be.true);",
+                  "pm.test('file id returned', () => pm.expect(json.file.id).to.match(/^F/));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "channels", "value": "{{channel_name}}", "type": "text"},
+                {"key": "title", "value": "Test Report", "type": "text"},
+                {"key": "initial_comment", "value": "Uploading test results file", "type": "text"},
+                {"key": "file", "type": "file", "src": "", "description": "Select any file from your machine"}
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/files.upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "files.upload"]
+            },
+            "description": "Upload a file to one or more channels.\n\nEquivalent to real Slack's `files.upload`.\n\n**Note:** This is a `multipart/form-data` request, not JSON. In Postman, select the **Body → form-data** tab and attach any file using the `file` field."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "header": [{"key": "Content-Type", "value": "application/json"}],
+              "body": "{\n  \"ok\": true,\n  \"file\": {\n    \"id\": \"F1774296066abcd\",\n    \"name\": \"report.txt\",\n    \"title\": \"Test Report\",\n    \"mimetype\": \"text/plain\",\n    \"filetype\": \"txt\",\n    \"size\": 1024,\n    \"url_private\": \"https://files.slack.com/files-pri/F1774296066abcd/report.txt\",\n    \"permalink\": \"https://mockslack.slack.com/files/F1774296066abcd\"\n  }\n}"
+            }
+          ]
+        }
+
+      ]
+    }
+
+  ]
+}
