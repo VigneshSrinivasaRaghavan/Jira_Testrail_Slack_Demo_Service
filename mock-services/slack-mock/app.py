@@ -62,62 +62,57 @@ async def lifespan(application: FastAPI):
 
 
 API_DESCRIPTION = """
-## 🔐 Authentication — Required for every API call
+## Slack Mock API — Training & Demo Environment
 
-All API endpoints require a **Bearer token** in the `Authorization` header.
+This service mimics the Slack Web API endpoints for AI agent integration training.
 
-### ✅ Use this token for all requests:
+---
+
+## 🔑 Authentication — Required for ALL API calls
+
+Every API endpoint requires a Bearer token in the `Authorization` header.
+
+**The token is fixed. Use exactly this value:**
 
 ```
 Authorization: Bearer xoxb-mock-bot-token
 ```
 
-### How to authenticate in this Swagger UI:
-1. Click the **🔒 Authorize** button at the top-right of this page
-2. In the **BearerAuth** field, enter: `xoxb-mock-bot-token`
-3. Click **Authorize**, then **Close**
-4. All requests you send from this page will now include the correct header automatically
+Any other token format → `{"ok": false, "error": "invalid_auth"}`.
+
+**How to authorize in this UI:**
+1. Click the **Authorize 🔒** button at the top right of this page
+2. In the `BearerAuth` field enter: `xoxb-mock-bot-token`
+3. Click **Authorize** → **Close**
+4. All requests from this UI will now include the correct header automatically
 
 ---
 
-### Token format rules (same as real Slack)
-| Token prefix | Type | Example |
-|---|---|---|
-| `xoxb-` | Bot token | `xoxb-mock-bot-token` |
-| `xoxp-` | User token | `xoxp-mock-user-token` |
-| `demo-token` | Dev shortcut | `demo-token` |
-| `test-token` | Dev shortcut | `test-token` |
-
-> Any string starting with `xoxb-` or `xoxp-` is accepted — the value after the prefix does not matter in this mock.
-
----
-
-## 📡 Key Endpoints
-
-| Method | Endpoint | What it does |
-|---|---|---|
-| `POST` | `/api/chat.postMessage` | **Send a message to a channel** |
-| `GET` | `/api/conversations.list` | List all channels |
-| `GET` | `/api/conversations.history` | Get messages in a channel |
-| `GET` | `/api/auth.test` | Validate your token |
-| `GET` | `/api/users.list` | List all users |
-| `POST` | `/api/conversations.create` | Create a new channel |
-| `POST` | `/api/chat.update` | Edit a message |
-| `POST` | `/api/chat.delete` | Delete a message |
-| `POST` | `/api/reactions.add` | Add an emoji reaction |
+## Key Features
+- **Send messages** to channels via `chat.postMessage` (same API as real Slack)
+- **List / create channels**: `conversations.list`, `conversations.create`
+- **Read history**: `conversations.history` with oldest/latest filters
+- **Thread replies**: `conversations.replies`
+- **Users**: `users.list`, `users.info`
+- **Reactions**: `reactions.add`, `reactions.get`
+- **Auth validation**: `auth.test` — verify token and get workspace info
+- Every response follows Slack format: `{"ok": true, ...}` or `{"ok": false, "error": "..."}`
 
 ---
 
-## 🚀 Quick Example — Send a message
-
-```bash
-curl -X POST http://localhost:4003/api/chat.postMessage \\
-  -H "Authorization: Bearer xoxb-mock-bot-token" \\
-  -H "Content-Type: application/json" \\
-  -d '{"channel": "qa-reports", "text": "Hello from the API!"}'
+## Base URL
+```
+http://localhost:4003
 ```
 
-Every response follows Slack's format: `{"ok": true, ...}` on success or `{"ok": false, "error": "..."}` on failure.
+## Quick Example — Send a message
+```
+POST /api/chat.postMessage
+Authorization: Bearer xoxb-mock-bot-token
+Content-Type: application/json
+
+{"channel": "qa-reports", "text": "Hello from the API!"}
+```
 """
 
 # Create FastAPI app
@@ -225,12 +220,8 @@ def custom_openapi():
         "BearerAuth": {
             "type": "http",
             "scheme": "bearer",
-            "bearerFormat": "Slack bot token  (e.g. xoxb-mock-bot-token)",
-            "description": (
-                "Enter your Slack-style bearer token.\n\n"
-                "**Use this value:** `xoxb-mock-bot-token`\n\n"
-                "Any token starting with `xoxb-` or `xoxp-` is accepted."
-            ),
+            "bearerFormat": "xoxb-mock-bot-token",
+            "description": "Enter the mock Slack token: **xoxb-mock-bot-token**",
         }
     }
 
